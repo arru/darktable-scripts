@@ -20,7 +20,16 @@ local function write_geotag()
 
   for _,image in pairs(images_to_write) do
     local imagePath = "'"..image.path.."/"..image.filename.."'"
-    local exifCommand = "exiftool -exif:gpslatitude="..image.latitude.." -exif:gpslongitude="..image.longitude.." "..imagePath
+    
+    local exifCommand = "exiftool"
+    if (dt.preferences.read("write_geotag","DeleteOriginal","bool")) then
+      exifCommand = exifCommand.." -overwrite_original"
+    end
+    if (dt.preferences.read("write_geotag","KeepFileDate","bool")) then
+      exifCommand = exifCommand.." -preserve"
+    end
+    exifCommand = exifCommand.." -exif:gpslatitude="..image.latitude.." -exif:gpslongitude="..image.longitude.." "..imagePath
+    
     local testIsFileCommand = "test -f "..imagePath
     
     --Will fail and exit if image file does not exist (or path is invalid)
@@ -36,5 +45,8 @@ local function write_geotag()
   
   save_job.valid = false
 end
+
+dt.preferences.register("write_geotag", "DeleteOriginal", "bool", "Write geotag: delete original image file", "Delete original image file after updating EXIF. When off, keep it in the same folder, appending _original to its name", false )
+dt.preferences.register("write_geotag", "KeepFileDate", "bool", "Write geotag: carry over original image file's creation & modification date", "Sets same creation & modification date as original file when writing EXIF. When off, time and date will be that at time of writing new file, to reflect that it was altered. Camera EXIF date and time code are never altered, regardless of this setting.", true )
 
 dt.register_event("shortcut",write_geotag, "Write geotag to image file")
