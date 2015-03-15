@@ -9,7 +9,10 @@ local function write_geotag()
   local image_table_count = 0
   
   for _,image in pairs(image_table) do
-    if (not isnan(image.longitude) and not isnan(image.latitude)) then      
+    if (not isnan(image.longitude) and not isnan(image.latitude)) then
+      
+      
+      
       table.insert(images_to_write,image)
       image_table_count = image_table_count + 1
     end
@@ -17,7 +20,7 @@ local function write_geotag()
   
   save_job = dt.gui.create_job ("Saving exif geotags", true)
   local image_done_count = 0
-
+  
   for _,image in pairs(images_to_write) do
     local imagePath = "'"..image.path.."/"..image.filename.."'"
     
@@ -35,11 +38,15 @@ local function write_geotag()
     --Will fail and exit if image file does not exist (or path is invalid)
     coroutine.yield("RUN_COMMAND", testIsFileCommand)
     
+    
+    
+    
     coroutine.yield("RUN_COMMAND", exifCommand)
     
     dt.print("Wrote geotag for "..image.filename)
     save_job.percent = image_table_count/image_done_count
     image_done_count = image_done_count + 1
+    
     
   end
   
