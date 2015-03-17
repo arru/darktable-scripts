@@ -3,6 +3,8 @@ table = require "table"
 
 local function isnan(x) return x ~= x end
 
+local function getImagePath(i) return "'"..i.path.."/"..i.filename.."'" end
+
 local function write_geotag()
   local images_to_write = {}
   local image_table = dt.gui.selection();
@@ -22,8 +24,6 @@ local function write_geotag()
   local image_done_count = 0
   
   for _,image in pairs(images_to_write) do
-    local imagePath = "'"..image.path.."/"..image.filename.."'"
-    
     local exifCommand = "exiftool"
     if (dt.preferences.read("write_geotag","DeleteOriginal","bool")) then
       exifCommand = exifCommand.." -overwrite_original"
@@ -31,6 +31,9 @@ local function write_geotag()
     if (dt.preferences.read("write_geotag","KeepFileDate","bool")) then
       exifCommand = exifCommand.." -preserve"
     end
+    
+    local imagePath = getImagePath(image)
+    
     exifCommand = exifCommand.." -exif:gpslatitude="..image.latitude.." -exif:gpslongitude="..image.longitude.." "..imagePath
     
     local testIsFileCommand = "test -f "..imagePath
