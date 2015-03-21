@@ -52,7 +52,7 @@ local function write_geotag()
     
     local imagePath = getImagePath(image)
     
-    exifCommand = exifCommand.." -exif:gpslatitude="..image.latitude.." -exif:gpslongitude="..image.longitude.." "..imagePath
+    exifCommand = exifCommand.." -exif:GPSLatitude="..image.latitude.." -exif:GPSLatitudeRef="..image.latitude.." -exif:GPSLongitude="..image.longitude.." -exif:GPSLongitudeRef="..image.longitude.." -exif:GPSAltitude= -exif:GPSAltitudeRef= -exif:GPSHPositioningError= "..imagePath
     
     local testIsFileCommand = "test -f "..imagePath
     
