@@ -5,7 +5,7 @@ local function getImagePath(i) return "'"..i.path.."/"..i.filename.."'" end
 
 local function write_geotag()
   local images_to_write = {}
-  local image_table = dt.gui.selection();
+  local image_table = dt.gui.selection()
   local precheck_fraction = 0.2
   local image_table_count = 0
   local tagged_files_skipped = 0
@@ -28,7 +28,7 @@ local function write_geotag()
         exifReadProcess:close()
         
         if (not includeImage) then
-            tagged_files_skipped = tagged_files_skipped + 1
+          tagged_files_skipped = tagged_files_skipped + 1
         end
       end
       
@@ -66,7 +66,6 @@ local function write_geotag()
     
     image_done_count = image_done_count + 1
     save_job.percent = (image_done_count/image_table_count)*(1-precheck_fraction) + precheck_fraction
-    
     
   end
   
