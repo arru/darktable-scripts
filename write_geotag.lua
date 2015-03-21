@@ -6,6 +6,7 @@ local function getImagePath(i) return "'"..i.path.."/"..i.filename.."'" end
 local function write_geotag()
   local images_to_write = {}
   local image_table = dt.gui.selection();
+  local precheck_fraction = 0.2
   local image_table_count = 0
   local tagged_files_skipped = 0
   
@@ -39,6 +40,8 @@ local function write_geotag()
     end
   end
   
+  save_job.percent = precheck_fraction
+  
   local image_done_count = 0
   
   for _,image in pairs(images_to_write) do
@@ -61,9 +64,8 @@ local function write_geotag()
     
     coroutine.yield("RUN_COMMAND", exifCommand)
     
-    dt.print("Wrote geotag for "..image.filename)
-    save_job.percent = image_table_count/image_done_count
     image_done_count = image_done_count + 1
+    save_job.percent = (image_done_count/image_table_count)*(1-precheck_fraction) + precheck_fraction
     
     
   end
