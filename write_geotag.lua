@@ -1,22 +1,21 @@
 dt = require "darktable"
 table = require "table"
 
-local function isnan(x) return x ~= x end
-
 local function getImagePath(i) return "'"..i.path.."/"..i.filename.."'" end
 
 local function write_geotag()
   local images_to_write = {}
   local image_table = dt.gui.selection();
   local image_table_count = 0
+  local tagged_files_skipped = 0
   
   save_job = dt.gui.create_job ("Saving exif geotags", true)
   
   for _,image in pairs(image_table) do
-    if (not isnan(image.longitude) and not isnan(image.latitude)) then
+    if (image.longitude and image.latitude) then
       local includeImage = true
       if (not dt.preferences.read("write_geotag","OverwriteGeotag","bool")) then
-        local exifReadProcess = io.popen("exiftool -n -GPSLongitude -GPSLatitude "..getImagePath(image))
+        local exifReadProcess = io.popen("exiftool -n -GPS:All "..getImagePath(image))
         local exifLine = exifReadProcess:read()
         while exifLine do
           if (exifLine ~= '') then
@@ -26,6 +25,10 @@ local function write_geotag()
           exifLine = exifReadProcess:read()
         end
         exifReadProcess:close()
+        
+        if (not includeImage) then
+            tagged_files_skipped = tagged_files_skipped + 1
+        end
       end
       
       
@@ -66,6 +69,10 @@ local function write_geotag()
   end
   
   save_job.valid = false
+  
+  if (tagged_files_skipped > 0) then
+    dt.print(tagged_files_skipped.." image(s) were skipped as they already had a EXIF geotag")
+  end
 end
 
 dt.preferences.register("write_geotag", "OverwriteGeotag", "bool", "Write geotag: allow overwriting existing file geotag", "Replace existing geotag in file. If unchecked, files with lat & lon data will be silently skipped.", false )
