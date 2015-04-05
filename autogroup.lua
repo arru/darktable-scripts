@@ -50,7 +50,6 @@ local function autogroup()
   
   progress_job = dt.gui.create_job ("Auto-grouping images", true)
   
-  local interval_day = false
   local progress_analysis_completed = 0
   local num_images = #ordered_keys
   
@@ -75,7 +74,6 @@ local function autogroup()
       
       group_size = group_size + 1
     end
-    if max_interval > 28800 then interval_day = true end
     
     progress_analysis_completed = progress_analysis_completed + 1
     progress_job.percent = (progress_analysis_completed/num_images)
@@ -91,12 +89,6 @@ local function autogroup()
     return
   end  
   
-  if not interval_day then
-    dt.print("Not enough variety for autogroup to work. Please select more images.")
-    
-    progress_job.valid = false
-    return
-  end  
   local short_time_bias = 1.5
   
   if _autogroup_debug then
