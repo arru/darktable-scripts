@@ -5,6 +5,8 @@ _autogroup_debug = false
 
 if _autogroup_debug then dtd = require "darktable.debug" end
 
+-------- Support functions --------
+
 local function _get_image_time (image)
   local datestring = image.exif_datetime_taken
   local pattern = "(%d+):(%d+):(%d+) (%d+):(%d+):(%d+)"
@@ -30,6 +32,8 @@ local function _image_time_sort (image_a, image_b)
   return a_time < b_time
 end
 
+-------- Main script entry point --------
+
 local function autogroup()
   local short_threshold = dt.preferences.read("autogroup","LowerGroupingTime","integer")
   local long_threshold  = dt.preferences.read("autogroup","UpperGroupingTime","integer")
@@ -52,6 +56,8 @@ local function autogroup()
   
   local progress_analysis_completed = 0
   local num_images = #ordered_keys
+  
+  -------- Build group size/interval table --------
   
   for i = 1, #ordered_keys do    
     local group_size = 2
@@ -82,6 +88,8 @@ local function autogroup()
     *progress_analysis_portion
   end
   
+  -------- Debug and error checking of interval table --------
+  
   --Algorithm must find at least 3-groups within the selected images, or there will
   --be no way to determine group interval
   if #min_interval < 3 then
@@ -89,7 +97,7 @@ local function autogroup()
     
     progress_job.valid = false
     return
-  end  
+  end
   
   local short_time_bias = 1.5
   
@@ -107,6 +115,8 @@ local function autogroup()
     end
     print("---------------------------------")
   end
+  
+  -------- Find grouping cutoff value --------
   
   local grouping_interval = short_threshold
   local interval_growth_threshold = dt.preferences.read("autogroup","GroupingFactor","float")
@@ -137,6 +147,8 @@ local function autogroup()
     print ("Using group size: "..(key_group_size))
     print ("Grouping_interval: "..grouping_interval.." s")
   end
+  
+  -------- Group images by interval obtained above --------
   
   local previous_image = image_table[ ordered_keys[1] ]
   local previous_image_time = _get_image_time(previous_image)
