@@ -1,17 +1,26 @@
 dt = require "darktable"
 table = require "table"
-dtd = require "darktable.debug"
 
 _autogroup_debug = false
+
+if _autogroup_debug then dtd = require "darktable.debug" end
 
 local function _get_image_time (image)
   local datestring = image.exif_datetime_taken
   local pattern = "(%d+):(%d+):(%d+) (%d+):(%d+):(%d+)"
   
   local xyear, xmonth, xday, xhour, xminute, xseconds = datestring:match(pattern)
+
+  --Bad 0000:00:00 00:00:00 date workaround
+  xyear = math.max (xyear, 1970)
+  xmonth = math.max (xmonth, 1)
+  xday = math.max (xday, 1)
   
-  return os.time({year = xyear, month = xmonth, day = xday,
+  local time = os.time({year = xyear, month = xmonth, day = xday,
   hour = xhour, min = xminute, sec = xseconds})
+  assert (time, "Failed parsing datestring '"..datestring.."'")
+  
+  return time
 end
 
 local function _image_time_sort (image_a, image_b)
@@ -88,6 +97,7 @@ local function autogroup()
     progress_job.valid = false
     return
   end  
+  local short_time_bias = 1.5
   
   if _autogroup_debug then
     local last_interval = 1.0
@@ -96,12 +106,12 @@ local function autogroup()
       this_interval = min_interval[i]
       local growth = 0
       if last_interval > 0 then
-        growth = this_interval/last_interval
+        growth = this_interval/(last_interval+short_time_bias)
       end
       print(i..":\t"..this_interval.."\t("..growth..")")
       last_interval = this_interval
     end
-    print("")
+    print("---------------------------------")
   end
   
   local grouping_interval = short_threshold
@@ -110,16 +120,17 @@ local function autogroup()
   local interval_growth = 1.0
   local key_group_size = -1
   for g = 2, #min_interval do
-    key_group_size = g
+    local new_interval = min_interval[g]
     --Add bias to compensate for lack of precision in small (<6 or so) integers
-    interval_growth = min_interval[g]/(grouping_interval+2)
-    if grouping_interval > short_threshold and interval_growth >= interval_growth_threshold then
+    interval_growth = new_interval/(grouping_interval+short_time_bias)
+    if new_interval > short_threshold and interval_growth >= interval_growth_threshold then
       break
     end
-    grouping_interval = min_interval[g]
+    key_group_size = g
+    grouping_interval = new_interval
   end
   
-  if #min_interval == key_group_size then
+  if key_group_size < 2 or #min_interval == key_group_size then
     dt.print("Failed to isolate groups. Try selecting more images or decrease grouping factor.")
     
     progress_job.valid = false
@@ -130,7 +141,7 @@ local function autogroup()
   
   if _autogroup_debug then  
     print ("Using group size: "..(key_group_size))
-    print ("Grouping_interval: "..grouping_interval)
+    print ("Grouping_interval: "..grouping_interval.." s")
   end
   
   local previous_image = image_table[ ordered_keys[1] ]
