@@ -137,7 +137,7 @@ local function autogroup()
     return
   end  
   
-  grouping_interval = grouping_interval * interval_growth_threshold
+  grouping_interval = math.ceil(grouping_interval * interval_growth_threshold)
   
   if _autogroup_debug then  
     print ("Using group size: "..(key_group_size))
