@@ -65,11 +65,13 @@ local function autogroup()
       local interval = t_next - t_this
       max_interval = math.max (interval, max_interval)
       
-      if min_interval [group_size] == nil then
-        --Insert initial value into min_interval if empty
-        min_interval [group_size] = max_interval
-      else
-        min_interval [group_size] = math.min (max_interval, min_interval [group_size])
+      if max_interval < long_threshold then
+        if min_interval [group_size] == nil then
+          --Insert initial value into min_interval if empty
+          min_interval [group_size] = max_interval
+        else
+          min_interval [group_size] = math.min (max_interval, min_interval [group_size])
+        end
       end
       
       group_size = group_size + 1
@@ -82,7 +84,7 @@ local function autogroup()
   
   --Algorithm must find at least 3-groups within the selected images, or there will
   --be no way to determine group interval
-  if #min_interval <= 3 then
+  if #min_interval < 3 then
     dt.print("No groups found. Please increase max time apart, or select more images.")
     
     progress_job.valid = false
