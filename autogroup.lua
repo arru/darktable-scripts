@@ -100,25 +100,9 @@ local function autogroup()
     return
   end
   
-  local short_time_bias = 1.5
-  
-  if _autogroup_debug then
-    local last_interval = 1.0
-    local this_interval = 1.0
-    for i = 2, #min_interval do
-      this_interval = min_interval[i]
-      local growth = 0
-      if last_interval > 0 then
-        growth = this_interval/(last_interval+short_time_bias)
-      end
-      print(i..":\t"..this_interval.."\t("..growth..")")
-      last_interval = this_interval
-    end
-    print("---------------------------------")
-  end
-  
   -------- Find grouping cutoff value --------
   
+  local short_time_bias = 1.5
   local last_interval = min_interval[3]
   local grouping_interval = nil
   local key_group_size = 0
@@ -138,6 +122,9 @@ local function autogroup()
       key_group_size = g
     end
     
+    if _autogroup_debug then  
+      print(g..":\t"..new_interval.."\t("..interval_growth..")")
+    end
     last_interval = new_interval
   end
   
