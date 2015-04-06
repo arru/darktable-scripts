@@ -82,12 +82,12 @@ local function autogroup()
   _autogroup_short_threshold = dt.preferences.read("autogroup","LowerGroupingTime","integer")
   _autogroup_long_threshold  = dt.preferences.read("autogroup","UpperGroupingTime","integer")
   no_groups_fallback =  dt.preferences.read("autogroup","NoGroupsFallback","bool")
-  local min_interval = {}
   
-  local image_table = dt.gui.selection()
-  
-  local ordered_keys = {}
   local progress_analysis_portion = 0.9
+  
+  local min_interval = {}
+  local image_table = dt.gui.selection()
+  local ordered_keys = {}
   
   table.sort(image_table,_image_time_sort)
   
@@ -128,7 +128,7 @@ local function autogroup()
     
     progress_analysis_completed = progress_analysis_completed + 1
     progress_job.percent = (progress_analysis_completed/num_images)
-    *progress_analysis_portion
+      *progress_analysis_portion
   end
   
   -------- Find grouping cutoff value --------
