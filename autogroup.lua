@@ -111,7 +111,7 @@ local function autogroup()
   local max_growth_factor = 0.0
   --Search for largest growth factor, store away base interval value for growth 
   --as grouping_interval result
-  for g = 2, #min_interval do
+  for g = 4, #min_interval do
     local new_interval = min_interval[g]
     --Add bias to compensate for lack of precision in small (<6 or so) integers
     interval_growth = new_interval/math.max(short_threshold,last_interval+short_time_bias)
