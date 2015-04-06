@@ -128,14 +128,15 @@ local function autogroup()
     last_interval = new_interval
   end
   
-  if key_group_size < 2 or #min_interval == key_group_size then
+  if key_group_size < 2 then
     dt.print("Failed to isolate groups. Try selecting more images or decrease grouping factor.")
     
     progress_job.valid = false
     return
   end
   
-  grouping_interval = math.ceil(grouping_interval * interval_growth_threshold)
+  grouping_interval = math.min(
+    math.ceil(grouping_interval * _autogroup_interval_error_margin), long_threshold)
   
   if _autogroup_debug then
     print ("Using group size: "..(key_group_size))
