@@ -2,6 +2,7 @@ dt = require "darktable"
 table = require "table"
 
 _autogroup_debug = false
+_autogroup_interval_error_margin = 1.25
 
 if _autogroup_debug then dtd = require "darktable.debug" end
 
@@ -118,20 +119,26 @@ local function autogroup()
   
   -------- Find grouping cutoff value --------
   
-  local grouping_interval = short_threshold
-  local interval_growth_threshold = dt.preferences.read("autogroup","GroupingFactor","float")
+  local last_interval = min_interval[3]
+  local grouping_interval = nil
+  local key_group_size = 0
   
   local interval_growth = 1.0
-  local key_group_size = -1
+  local max_growth_factor = 0.0
+  --Search for largest growth factor, store away base interval value for growth 
+  --as grouping_interval result
   for g = 2, #min_interval do
     local new_interval = min_interval[g]
     --Add bias to compensate for lack of precision in small (<6 or so) integers
-    interval_growth = new_interval/(grouping_interval+short_time_bias)
-    if new_interval > short_threshold and interval_growth >= interval_growth_threshold then
-      break
+    interval_growth = new_interval/math.max(short_threshold,last_interval+short_time_bias)
+    if last_interval > short_threshold and interval_growth > max_growth_factor then
+      --New highest growth value found, store and continue
+      max_growth_factor = interval_growth
+      grouping_interval = last_interval
+      key_group_size = g
     end
-    key_group_size = g
-    grouping_interval = new_interval
+    
+    last_interval = new_interval
   end
   
   if key_group_size < 2 or #min_interval == key_group_size then
@@ -139,11 +146,11 @@ local function autogroup()
     
     progress_job.valid = false
     return
-  end  
+  end
   
   grouping_interval = math.ceil(grouping_interval * interval_growth_threshold)
   
-  if _autogroup_debug then  
+  if _autogroup_debug then
     print ("Using group size: "..(key_group_size))
     print ("Grouping_interval: "..grouping_interval.." s")
   end
@@ -172,6 +179,5 @@ end
 
 dt.preferences.register("autogroup", "LowerGroupingTime", "integer", "Autogroup: images always belong in the same group when time apart (seconds) is no more than", "HELP", 2, 0, 10000 )
 dt.preferences.register("autogroup", "UpperGroupingTime", "integer", "Autogroup: images will never be grouped if time apart (seconds) is more than", "HELP", 20, 2, 10000 )
-dt.preferences.register("autogroup", "GroupingFactor", "float", "Autogroup: grouping factor - higher number will allow larger groups", "HELP", 1.5, 1.01, 4.0, 0.05 )
 
 dt.register_event("shortcut", autogroup, "Auto-group images based on time taken")
