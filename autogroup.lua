@@ -13,7 +13,7 @@ local function _get_image_time (image)
   local pattern = "(%d+):(%d+):(%d+) (%d+):(%d+):(%d+)"
   
   local xyear, xmonth, xday, xhour, xminute, xseconds = datestring:match(pattern)
-
+  
   --Bad 0000:00:00 00:00:00 date workaround
   xyear = math.max (xyear, 1970)
   xmonth = math.max (xmonth, 1)
@@ -33,16 +33,58 @@ local function _image_time_sort (image_a, image_b)
   return a_time < b_time
 end
 
+
+local function _find_cutoff (intervals)
+  local short_time_bias = 1.5
+  local last_interval = intervals[3]
+  local cutoff_interval = nil
+  local key_group_size = 0
+  
+  if _autogroup_debug then  
+    print("3:\t"..last_interval)
+  end
+  
+  local interval_growth = 1.0
+  local max_growth_factor = 0.0
+  --Search for largest growth factor, store away base interval value for growth 
+  --as cutoff_interval result
+  for g = 4, #intervals do
+    local new_interval = intervals[g]
+    --Add bias to compensate for lack of precision in small (<6 or so) integers
+    interval_growth = new_interval/math.max(_autogroup_short_threshold,last_interval+short_time_bias)
+    if last_interval > _autogroup_short_threshold and interval_growth > max_growth_factor then
+      --New highest growth value found, store and continue
+      max_growth_factor = interval_growth
+      cutoff_interval = last_interval
+      key_group_size = g
+    end
+    
+    if _autogroup_debug then  
+      print(g..":\t"..new_interval.."\t("..interval_growth..")")
+    end
+    last_interval = new_interval
+  end
+  
+  if key_group_size < 2 then
+    cutoff_interval = nil
+  end
+  
+  if _autogroup_debug then
+    print ("Using group size: "..(key_group_size))
+  end
+  
+  return cutoff_interval
+end
+
 -------- Main script entry point --------
 
 local function autogroup()
-  local short_threshold = dt.preferences.read("autogroup","LowerGroupingTime","integer")
-  local long_threshold  = dt.preferences.read("autogroup","UpperGroupingTime","integer")
-  
+  _autogroup_short_threshold = dt.preferences.read("autogroup","LowerGroupingTime","integer")
+  _autogroup_long_threshold  = dt.preferences.read("autogroup","UpperGroupingTime","integer")
+  no_groups_fallback =  dt.preferences.read("autogroup","NoGroupsFallback","bool")
   local min_interval = {}
   
   local image_table = dt.gui.selection()
-  
   
   local ordered_keys = {}
   local progress_analysis_portion = 0.9
@@ -63,7 +105,7 @@ local function autogroup()
   for i = 1, #ordered_keys do    
     local group_size = 2
     local max_interval = 0
-    while max_interval < long_threshold and (i+group_size-1) <= num_images do
+    while max_interval < _autogroup_long_threshold and (i+group_size-1) <= num_images do
       local t_this = _get_image_time(image_table[ ordered_keys[i+group_size-2] ])
       local t_next = _get_image_time(image_table[ ordered_keys[i+group_size-1] ])
       
@@ -72,7 +114,7 @@ local function autogroup()
       local interval = t_next - t_this
       max_interval = math.max (interval, max_interval)
       
-      if max_interval < long_threshold then
+      if max_interval < _autogroup_long_threshold then
         if min_interval [group_size] == nil then
           --Insert initial value into min_interval if empty
           min_interval [group_size] = max_interval
@@ -89,57 +131,31 @@ local function autogroup()
     *progress_analysis_portion
   end
   
-  -------- Debug and error checking of interval table --------
-  
-  --Algorithm must find at least 3-groups within the selected images, or there will
-  --be no way to determine group interval
-  if #min_interval < 3 then
-    dt.print("No groups found. Please increase max time apart, or select more images.")
-    
-    progress_job.valid = false
-    return
-  end
-  
   -------- Find grouping cutoff value --------
   
-  local short_time_bias = 1.5
-  local last_interval = min_interval[3]
   local grouping_interval = nil
-  local key_group_size = 0
-  
-  local interval_growth = 1.0
-  local max_growth_factor = 0.0
-  --Search for largest growth factor, store away base interval value for growth 
-  --as grouping_interval result
-  for g = 4, #min_interval do
-    local new_interval = min_interval[g]
-    --Add bias to compensate for lack of precision in small (<6 or so) integers
-    interval_growth = new_interval/math.max(short_threshold,last_interval+short_time_bias)
-    if last_interval > short_threshold and interval_growth > max_growth_factor then
-      --New highest growth value found, store and continue
-      max_growth_factor = interval_growth
-      grouping_interval = last_interval
-      key_group_size = g
-    end
-    
-    if _autogroup_debug then  
-      print(g..":\t"..new_interval.."\t("..interval_growth..")")
-    end
-    last_interval = new_interval
+  --Algorithm must find at least 3-groups within the selected images, or there will
+  --be no way to determine group interval
+  if #min_interval >= 3 then
+    grouping_interval = _find_cutoff(min_interval)
   end
   
-  if key_group_size < 2 then
-    dt.print("Failed to isolate groups. Try selecting more images or decrease grouping factor.")
-    
-    progress_job.valid = false
-    return
+  if grouping_interval == nil then
+    if no_groups_fallback then
+      grouping_interval = _autogroup_short_threshold
+    else
+      dt.print("No groups found. Please increase max time apart, select more images or enable guaranteed grouping.")
+      
+      progress_job.valid = false
+      return
+    end
+  else
+    grouping_interval = math.max(math.min(
+      math.ceil(grouping_interval * _autogroup_interval_error_margin),
+      _autogroup_long_threshold),_autogroup_short_threshold)
   end
-  
-  grouping_interval = math.min(
-    math.ceil(grouping_interval * _autogroup_interval_error_margin), long_threshold)
   
   if _autogroup_debug then
-    print ("Using group size: "..(key_group_size))
     print ("Grouping_interval: "..grouping_interval.." s")
   end
   
@@ -167,5 +183,6 @@ end
 
 dt.preferences.register("autogroup", "LowerGroupingTime", "integer", "Autogroup: images always belong in the same group when time apart (seconds) is no more than", "HELP", 2, 0, 10000 )
 dt.preferences.register("autogroup", "UpperGroupingTime", "integer", "Autogroup: images will never be grouped if time apart (seconds) is more than", "HELP", 20, 2, 10000 )
+dt.preferences.register("autogroup", "NoGroupsFallback", "bool", "Autogroup: guaranteed grouping, use minimum setting for grouping if no groups can be found", "HELP", true )
 
 dt.register_event("shortcut", autogroup, "Auto-group images based on time taken")
