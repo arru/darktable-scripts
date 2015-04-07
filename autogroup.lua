@@ -52,10 +52,14 @@ local function _find_cutoff (intervals)
     local new_interval = intervals[g]
     --Add bias to compensate for lack of precision in small (<6 or so) integers
     interval_growth = new_interval/math.max(_autogroup_short_threshold,last_interval+short_time_bias)
-    if last_interval > _autogroup_short_threshold and interval_growth > max_growth_factor then
+    if new_interval > _autogroup_short_threshold and
+      interval_growth > max_growth_factor then
       --New highest growth value found, store and continue
       max_growth_factor = interval_growth
-      cutoff_interval = last_interval
+      --Clipping cutoff_interval covers a border case where the key group is the
+      --first one above _autogroup_short_threshold, so last_interval may be below
+      --rather than equal to it
+      cutoff_interval = math.max(last_interval, _autogroup_short_threshold)
       key_group_size = g
     end
     
@@ -64,7 +68,7 @@ local function _find_cutoff (intervals)
     end
     last_interval = new_interval
   end
-  
+    
   if key_group_size < 2 then
     cutoff_interval = nil
   end
