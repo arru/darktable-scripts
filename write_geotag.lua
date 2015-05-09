@@ -20,7 +20,7 @@ local function write_geotag()
         local exifLine = exifReadProcess:read()
         while exifLine do
           if (exifLine ~= '') then
-            local gpsTag, gpsValue = string.match(exifLine, "(GPS %a+)%s+: ([%d%.]+)")
+            local gpsTag, gpsValue = string.match(exifLine, "(GPS [%a ]-)%s+: (.-)$")
             includeImage = false
           end
           exifLine = exifReadProcess:read()
