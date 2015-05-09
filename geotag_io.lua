@@ -33,7 +33,7 @@ local function write_geotag()
   for _,image in pairs(image_table) do
     if (image.longitude and image.latitude) then
       local includeImage = true
-      if (not dt.preferences.read("write_geotag","OverwriteGeotag","bool")) then
+      if (not dt.preferences.read("geotag_io","OverwriteGeotag","bool")) then
         local tags = read_geotags(image)
         
         --Skip image if it has ANY GPS tag, not just location
@@ -60,10 +60,10 @@ local function write_geotag()
   
   for _,image in pairs(images_to_write) do
     local exifCommand = "exiftool"
-    if (dt.preferences.read("write_geotag","DeleteOriginal","bool")) then
+    if (dt.preferences.read("geotag_io","DeleteOriginal","bool")) then
       exifCommand = exifCommand.." -overwrite_original"
     end
-    if (dt.preferences.read("write_geotag","KeepFileDate","bool")) then
+    if (dt.preferences.read("geotag_io","KeepFileDate","bool")) then
       exifCommand = exifCommand.." -preserve"
     end
     
@@ -115,9 +115,9 @@ local function reset_geotag()
   end
 end
 
-dt.preferences.register("write_geotag", "OverwriteGeotag", "bool", "Write geotag: allow overwriting existing file geotag", "Replace existing geotag in file. If unchecked, files with lat & lon data will be silently skipped.", false )
-dt.preferences.register("write_geotag", "DeleteOriginal", "bool", "Write geotag: delete original image file", "Delete original image file after updating EXIF. When off, keep it in the same folder, appending _original to its name", false )
-dt.preferences.register("write_geotag", "KeepFileDate", "bool", "Write geotag: carry over original image file's creation & modification date", "Sets same creation & modification date as original file when writing EXIF. When off, time and date will be that at time of writing new file, to reflect that it was altered. Camera EXIF date and time code are never altered, regardless of this setting.", true )
+dt.preferences.register("geotag_io", "OverwriteGeotag", "bool", "Write geotag: allow overwriting existing file geotag", "Replace existing geotag in file. If unchecked, files with lat & lon data will be silently skipped.", false )
+dt.preferences.register("geotag_io", "DeleteOriginal", "bool", "Write geotag: delete original image file", "Delete original image file after updating EXIF. When off, keep it in the same folder, appending _original to its name", false )
+dt.preferences.register("geotag_io", "KeepFileDate", "bool", "Write geotag: carry over original image file's creation & modification date", "Sets same creation & modification date as original file when writing EXIF. When off, time and date will be that at time of writing new file, to reflect that it was altered. Camera EXIF date and time code are never altered, regardless of this setting.", true )
 
 dt.register_event("shortcut",write_geotag, "Write geotag to image file")
 dt.register_event("shortcut",reset_geotag, "Reset geotag to value in file")
