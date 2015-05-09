@@ -3,6 +3,24 @@ table = require "table"
 
 local function getImagePath(i) return "'"..i.path.."/"..i.filename.."'" end
 
+local function read_geotags(image)
+  local tags = {}
+  local exifReadProcess = io.popen("exiftool -n "..getImagePath(image))
+  local exifLine = exifReadProcess:read()
+  while exifLine do
+    if (exifLine ~= '') then
+      local gpsTag, gpsValue = string.match(exifLine, "(GPS [%a ]-)%s+: (.-)$")
+      if (gpsTag ~= nil) then
+        tags[gpsTag] = gpsValue
+      end 
+    end
+    exifLine = exifReadProcess:read()
+  end
+  exifReadProcess:close()
+  
+  return tags
+end
+
 local function write_geotag()
   local images_to_write = {}
   local image_table = dt.gui.selection()
@@ -16,16 +34,12 @@ local function write_geotag()
     if (image.longitude and image.latitude) then
       local includeImage = true
       if (not dt.preferences.read("write_geotag","OverwriteGeotag","bool")) then
-        local exifReadProcess = io.popen("exiftool -n -GPS:All "..getImagePath(image))
-        local exifLine = exifReadProcess:read()
-        while exifLine do
-          if (exifLine ~= '') then
-            local gpsTag, gpsValue = string.match(exifLine, "(GPS [%a ]-)%s+: (.-)$")
-            includeImage = false
-          end
-          exifLine = exifReadProcess:read()
+        local tags = read_geotags(image)
+        
+        --Skip image if it has ANY GPS tag, not just location
+        if next(tags) ~= nil then
+          includeImage = false 
         end
-        exifReadProcess:close()
         
         if (not includeImage) then
           tagged_files_skipped = tagged_files_skipped + 1
