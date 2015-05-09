@@ -90,8 +90,34 @@ local function write_geotag()
   end
 end
 
+local function reset_geotag()
+  local image_table = dt.gui.selection()
+  for _,image in pairs(image_table) do
+    --read_geotags will fail silently (return empty table) if file was not found
+    local tags = read_geotags(image)
+    
+    if next(tags) ~= nil then
+      local lat = nil
+      local lon = nil
+      
+      if (tags['GPS Latitude'] ~= nil and tags['GPS Longitude'] ~= nil) then
+         lat = tonumber(tags['GPS Latitude'])
+         lon = tonumber(tags['GPS Longitude'])
+      elseif (tags['GPS Position'] ~= nil) then
+        lat, lon = string.match(tags['GPS Position'], "([%d%.]+) ([%d%.]+)")
+      end
+      
+      if (lat ~= nil and lon ~= nil) then
+        image.latitude = lat
+        image.longitude = lon
+      end
+    end
+  end
+end
+
 dt.preferences.register("write_geotag", "OverwriteGeotag", "bool", "Write geotag: allow overwriting existing file geotag", "Replace existing geotag in file. If unchecked, files with lat & lon data will be silently skipped.", false )
 dt.preferences.register("write_geotag", "DeleteOriginal", "bool", "Write geotag: delete original image file", "Delete original image file after updating EXIF. When off, keep it in the same folder, appending _original to its name", false )
 dt.preferences.register("write_geotag", "KeepFileDate", "bool", "Write geotag: carry over original image file's creation & modification date", "Sets same creation & modification date as original file when writing EXIF. When off, time and date will be that at time of writing new file, to reflect that it was altered. Camera EXIF date and time code are never altered, regardless of this setting.", true )
 
 dt.register_event("shortcut",write_geotag, "Write geotag to image file")
+dt.register_event("shortcut",reset_geotag, "Reset geotag to value in file")
