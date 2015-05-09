@@ -18,7 +18,7 @@ Darktable allows you to geotag images using both .gpx track data, or point-and-c
 * Built and tested for Darktable 1.6
 
 ### Usage
-Put in darktable/lua folder inside darktable's configuration. Add `require "write_geotag"` to luarc file. Relaunch Darktable and locate the new command in Darktable's keyboard shortcut preferences. Set a shortcut you'd like (ctrl-shift-T for write tag, ctrl-shift-R for reset is a good choice) and you're good to go.
+Put in darktable/lua folder inside darktable's configuration. Add `require "geotag_io"` to luarc file. Relaunch Darktable and locate the new command in Darktable's keyboard shortcut preferences. Set a shortcut you'd like (ctrl-shift-T for write tag, ctrl-shift-R for reset is a good choice) and you're good to go.
 
 Autogroup: group images by shooting time
 ========================================
