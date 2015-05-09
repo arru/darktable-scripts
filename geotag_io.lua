@@ -92,6 +92,9 @@ end
 
 local function reset_geotag()
   local image_table = dt.gui.selection()
+  local processed_count = 0
+  local skipped_count = 0
+  
   for _,image in pairs(image_table) do
     --read_geotags will fail silently (return empty table) if file was not found
     local tags = read_geotags(image)
@@ -110,9 +113,13 @@ local function reset_geotag()
       if (lat ~= nil and lon ~= nil) then
         image.latitude = lat
         image.longitude = lon
+        processed_count = processed_count + 1
+      else
+        skipped_count = skipped_count + 1
       end
     end
   end
+  dt.print(processed_count.." image geotags reset ("..skipped_count.." skipped)")
 end
 
 dt.preferences.register("geotag_io", "OverwriteGeotag", "bool", "Write geotag: allow overwriting existing file geotag", "Replace existing geotag in file. If unchecked, files with lat & lon data will be silently skipped.", false )
