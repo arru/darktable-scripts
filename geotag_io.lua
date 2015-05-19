@@ -31,6 +31,7 @@ local function write_geotag()
   save_job = dt.gui.create_job ("Saving exif geotags", true)
   
   for _,image in pairs(image_table) do
+    --Will silently skip if coordinates are nil or 0.0
     if (image.longitude and image.latitude) then
       local includeImage = true
       if (not dt.preferences.read("geotag_io","OverwriteGeotag","bool")) then
@@ -45,7 +46,6 @@ local function write_geotag()
           tagged_files_skipped = tagged_files_skipped + 1
         end
       end
-      
       
       if includeImage then
         table.insert(images_to_write,image)
@@ -77,10 +77,9 @@ local function write_geotag()
     coroutine.yield("RUN_COMMAND", testIsFileCommand)
     
     coroutine.yield("RUN_COMMAND", exifCommand)
-    
+        
     image_done_count = image_done_count + 1
     save_job.percent = (image_done_count/image_table_count)*(1-precheck_fraction) + precheck_fraction
-    
   end
   
   save_job.valid = false
@@ -98,33 +97,42 @@ local function reset_geotag()
   for _,image in pairs(image_table) do
     --read_geotags will fail silently (return empty table) if file was not found
     local tags = read_geotags(image)
+    local lat = nil
+    local lon = nil
     
     if next(tags) ~= nil then
-      local lat = nil
-      local lon = nil
-      
       if (tags['GPS Latitude'] ~= nil and tags['GPS Longitude'] ~= nil) then
-         lat = tonumber(tags['GPS Latitude'])
-         lon = tonumber(tags['GPS Longitude'])
+        lat = tonumber(tags['GPS Latitude'])
+        lon = tonumber(tags['GPS Longitude'])
       elseif (tags['GPS Position'] ~= nil) then
-        lat, lon = string.match(tags['GPS Position'], "([%d%.]+) ([%d%.]+)")
-      end
-      
-      if (lat ~= nil and lon ~= nil) then
-        image.latitude = lat
-        image.longitude = lon
-        processed_count = processed_count + 1
-      else
-        skipped_count = skipped_count + 1
+          lat, lon = string.match(tags['GPS Position'], "([%d%.]+) ([%d%.]+)")
       end
     end
+    
+    if (lat ~= nil and lon ~= nil) then
+      image.latitude = lat
+      image.longitude = lon
+      processed_count = processed_count + 1
+    else
+      if (dt.preferences.read("write_geotag","ClearIfEmpty","bool")) then
+        image.latitude = nil
+        image.longitude = nil
+      end
+      skipped_count = skipped_count + 1
+    end
   end
-  dt.print(processed_count.." image geotags reset ("..skipped_count.." skipped)")
+  
+  local skipped_verb = "skipped"
+  if (dt.preferences.read("write_geotag","ClearIfEmpty","bool")) then
+    skipped_verb = "cleared"
+  end
+  dt.print(processed_count.." image geotags reset ("..skipped_count.." "..skipped_verb..")")
 end
 
 dt.preferences.register("geotag_io", "OverwriteGeotag", "bool", "Write geotag: allow overwriting existing file geotag", "Replace existing geotag in file. If unchecked, files with lat & lon data will be silently skipped.", false )
 dt.preferences.register("geotag_io", "DeleteOriginal", "bool", "Write geotag: delete original image file", "Delete original image file after updating EXIF. When off, keep it in the same folder, appending _original to its name", false )
 dt.preferences.register("geotag_io", "KeepFileDate", "bool", "Write geotag: carry over original image file's creation & modification date", "Sets same creation & modification date as original file when writing EXIF. When off, time and date will be that at time of writing new file, to reflect that it was altered. Camera EXIF date and time code are never altered, regardless of this setting.", true )
+dt.preferences.register("write_geotag", "ClearIfEmpty", "bool", "Reset geotag: if file has no geotag, clear Darktable geotag when resetting.", "Clear Darktable geotag if file about to be reset has no geotag. When off, Darktable geotag will only be altered if geotag exists in file.", true )
 
 dt.register_event("shortcut",write_geotag, "Write geotag to image file")
 dt.register_event("shortcut",reset_geotag, "Reset geotag to value in file")
