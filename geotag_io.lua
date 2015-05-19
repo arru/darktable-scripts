@@ -1,6 +1,8 @@
 dt = require "darktable"
 table = require "table"
 
+local nil_geo_tag = dt.tags.create("darktable|geo|nil")
+
 local function getImagePath(i) return "'"..i.path.."/"..i.filename.."'" end
 
 local function read_geotags(image)
@@ -33,6 +35,8 @@ local function write_geotag()
   for _,image in pairs(image_table) do
     --Will silently skip if coordinates are nil or 0.0
     if (image.longitude and image.latitude) then
+      dt.tags.detach(nil_geo_tag,image)
+
       local includeImage = true
       if (not dt.preferences.read("geotag_io","OverwriteGeotag","bool")) then
         local tags = read_geotags(image)
@@ -117,6 +121,8 @@ local function reset_geotag()
       if (dt.preferences.read("write_geotag","ClearIfEmpty","bool")) then
         image.latitude = nil
         image.longitude = nil
+        --Mitigation for bug http://darktable.org/redmine/issues/10450
+        dt.tags.attach(nil_geo_tag,image)
       end
       skipped_count = skipped_count + 1
     end
