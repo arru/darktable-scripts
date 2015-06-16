@@ -112,7 +112,15 @@ function copy_import()
   local numImagesCopied = 0
   local numImagesDuplicate = 0
   local numUnsupportedFiles = 0
+
+  local testDestRootMounted = "test -d '"..dest_root.."'"
+  local destMounted = os.execute(testDestRootMounted)
   
+  if (destMounted ~= true) then
+    dt.print(dest_root.." is not mounted. Please mount it, then try again.")
+    return
+  end
+
   transactions = {}
   changedDirs = {}
   
