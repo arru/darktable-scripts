@@ -40,7 +40,7 @@ local import_transaction = {
   destPath = nil,
   date = nil,
   tags = nil,
-  copied = false
+  destFileExists = nil
 }
 
 import_transaction.__index = import_transaction
@@ -100,7 +100,7 @@ function import_transaction.copy_image(self)
   
   coroutine.yield("RUN_COMMAND", copyCommand)
   
-  self.copied = true
+  self.destFileExists = true
   
   return destDir
 end
