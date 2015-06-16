@@ -24,6 +24,10 @@ local function interp(s, tab)
 end
 getmetatable("").__mod = interp
 
+local function escape_path(path)
+  return string.gsub(path, " ", "\\ ")
+end
+
 local function split_path(path)
   return string.match(path, "(.-)([^\\/]-%.?([^%.\\/]*))$")
 end
@@ -112,7 +116,7 @@ function copy_import()
   transactions = {}
   changedDirs = {}
   
-  for imagePath in io.popen("ls "..mount_root.."/*/DCIM/*/*.*"):lines() do
+  for imagePath in io.popen("ls "..escape_path(mount_root).."/*/DCIM/*/*.*"):lines() do
     local trans = import_transaction.new(imagePath)
     table.insert(transactions,trans)
   end
