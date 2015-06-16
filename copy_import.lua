@@ -109,9 +109,9 @@ end
 
 function copy_import()
   --TODO diagnostik
-  local numImagesCopied = 0
-  local numImagesDuplicate = 0
-  local numUnsupportedFiles = 0
+  local statsNumImagesFound = 0
+  local statsNumImagesDuplicate = 0
+  local statsNumFilesFound = 0
 
   local testDestRootMounted = "test -d '"..dest_root.."'"
   local destMounted = os.execute(testDestRootMounted)
@@ -127,18 +127,41 @@ function copy_import()
   for imagePath in io.popen("ls "..escape_path(mount_root).."/*/DCIM/*/*.*"):lines() do
     local trans = import_transaction.new(imagePath)
     table.insert(transactions,trans)
+    statsNumFilesFound = statsNumFilesFound + 1
   end
   
   for _,tr in pairs(transactions) do
     tr:load()
     if (tr.type =='image') then
+      statsNumImagesFound = statsNumImagesFound + 1
       local destDir = tr:copy_image()
-      changedDirs[destDir] = true
+      if (destDir ~= nil) then
+        changedDirs[destDir] = true
+      else
+        statsNumImagesDuplicate = statsNumImagesDuplicate + 1
+      end
     end
   end
   
   for dir,_ in pairs(changedDirs) do
     dt.database.import(dir)
+  end
+  
+  if (statsNumFilesFound > 0) then
+    local completionMessage = ""
+    if (statsNumImagesFound > 0) then
+      local completionMessage = statsNumImagesFound.." images imported."
+      if (statsNumImagesDuplicate > 0) then
+        completionMessage = completionMessage.." ".." of which "..statsNumImagesDuplicate.." had already been copied."
+      end
+    end
+    if (statsNumFilesFound > statsNumImagesFound) then
+      local numFilesIgnored = statsNumImagesFound -statsNumFilesFound
+      completionMessage = completionMessage.." "..numFilesIgnored.." unsupported files were ignored."
+    end
+    dt.print(completionMessage)
+  else
+    dt.print("No DCF files found. Is your memory card not mounted, or empty?")
   end
 end
 
