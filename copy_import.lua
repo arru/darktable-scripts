@@ -171,7 +171,7 @@ function copy_import()
   if (statsNumFilesFound > 0) then
     local completionMessage = ""
     if (statsNumImagesFound > 0) then
-      local completionMessage = statsNumImagesFound.." images imported."
+      completionMessage = statsNumImagesFound.." images imported."
       if (statsNumImagesDuplicate > 0) then
         completionMessage = completionMessage.." ".." of which "..statsNumImagesDuplicate.." had already been copied."
       end
