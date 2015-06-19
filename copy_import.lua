@@ -59,11 +59,6 @@ function import_transaction.load(self)
   
   local dir, name, ext = split_path(self.srcPath)
   
-  if (ext == nil) then
-    print (dir.." - "..name.." X")
-  else
-    print (dir.." - "..name.." - "..ext)
-  end
   
   if (ext ~= nil and supported_image_formats[ext:upper()] == true) then
     self.tags = {}
@@ -71,7 +66,6 @@ function import_transaction.load(self)
     for exifLine in io.popen("exiftool -n -DateTimeOriginal '"..self.srcPath.."'"):lines() do
       local tag, value = string.match(exifLine, "([%a ]-)%s+: (.-)$")
       if (tag ~= nil) then
-        --print ("tag:'"..gpsTag.."' val:'"..gpsValue.."'")
         self.tags[tag] = value
       end
     end
@@ -83,7 +77,6 @@ function import_transaction.load(self)
     self.type = 'image'
     self.destPath = interp(_copy_import_dest_root.."/".._copy_import_dir_structure_string.."/"..name, self.date)
   end
-  --använd sökväg för film om det är en film
 end
 
 function import_transaction.copy_image(self)
@@ -105,7 +98,6 @@ function import_transaction.copy_image(self)
   assert(fileExists ~= fileNotExists)
   
   if (fileExists == nil) then
-    print ("Copying "..self.srcPath)
     local copyCommand = "cp -n '"..self.srcPath.."' '"..self.destPath.."'"
     
     --print (makeDirCommand)
@@ -114,7 +106,6 @@ function import_transaction.copy_image(self)
     --print (copyCommand)
     coroutine.yield("RUN_COMMAND", copyCommand)
   else
-    print ("Skipping existing "..self.destPath)
     destDir = nil
   end
   
@@ -126,7 +117,6 @@ end
 -------- Main function --------
 
 function copy_import()
-  --TODO diagnostik
   local statsNumImagesFound = 0
   local statsNumImagesDuplicate = 0
   local statsNumFilesFound = 0
