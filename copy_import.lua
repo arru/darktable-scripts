@@ -95,11 +95,28 @@ function import_transaction.copy_image(self)
   local destDir,_,_ = split_path(self.destPath)
   
   local makeDirCommand = "mkdir -p '"..destDir.."'"
-  local copyCommand = "cp -n '"..self.srcPath.."' '"..self.destPath.."'"
   
-  coroutine.yield("RUN_COMMAND", makeDirCommand)
+  local testIsFileCommand = "test -s '"..self.destPath.."'"
+  local testIsNotFileCommand = "test ! -s '"..self.destPath.."'"
   
-  coroutine.yield("RUN_COMMAND", copyCommand)
+  local fileExists = os.execute(testIsFileCommand)
+  local fileNotExists = os.execute(testIsNotFileCommand)
+
+  assert(fileExists ~= fileNotExists)
+  
+  if (fileExists == nil) then
+    print ("Copying "..self.srcPath)
+    local copyCommand = "cp -n '"..self.srcPath.."' '"..self.destPath.."'"
+    
+    --print (makeDirCommand)
+    coroutine.yield("RUN_COMMAND", makeDirCommand)
+    
+    --print (copyCommand)
+    coroutine.yield("RUN_COMMAND", copyCommand)
+  else
+    print ("Skipping existing "..self.destPath)
+    destDir = nil
+  end
   
   self.destFileExists = true
   
