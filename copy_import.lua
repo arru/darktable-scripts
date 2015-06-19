@@ -1,8 +1,5 @@
 dt = require "darktable"
 
-local mount_root = "/Volumes"
-local dest_root = "/Pictures"
-local dir_structure_string = "${year}/${month}/${day}"
 local exif_date_pattern = "(%d+):(%d+):(%d+) (%d+):(%d+):(%d+)"
 
 --https://www.darktable.org/usermanual/ch02s03.html.php#supported_file_formats
@@ -11,6 +8,10 @@ local supported_image_formats_init = {"3FR", "ARW", "BAY", "BMQ", "CAP", "CINE",
 "JPEG", "JPG", "K25", "KC2", "KDC", "MDC", "MEF", "MOS", "MRW", "NEF", "NRW",
 "ORF", "PEF", "PFM", "PNG", "PXN", "QTK", "RAF", "RAW", "RDC", "RW1", "RW2",
 "SR2", "SRF", "SRW", "STI", "TIF", "TIFF", "X3F"}
+
+-------- Configuration --------
+
+local mount_root = "/Volumes"
 
 local supported_image_formats = {}
 for index,ext in pairs(supported_image_formats_init) do
@@ -80,7 +81,7 @@ function import_transaction.load(self)
     self.date = date
     
     self.type = 'image'
-    self.destPath = interp(dest_root.."/"..dir_structure_string.."/"..name, self.date)
+    self.destPath = interp(_copy_import_dest_root.."/".._copy_import_dir_structure_string.."/"..name, self.date)
   end
   --använd sökväg för film om det är en film
 end
@@ -112,12 +113,15 @@ function copy_import()
   local statsNumImagesFound = 0
   local statsNumImagesDuplicate = 0
   local statsNumFilesFound = 0
-
-  local testDestRootMounted = "test -d '"..dest_root.."'"
+  
+  _copy_import_dest_root = dt.preferences.read("copy_import","MainImportDirectory","directory")
+  _copy_import_dir_structure_string = dt.preferences.read("copy_import","FolderPattern","directory")
+  
+  local testDestRootMounted = "test -d '".._copy_import_dest_root.."'"
   local destMounted = os.execute(testDestRootMounted)
   
   if (destMounted ~= true) then
-    dt.print(dest_root.." is not mounted. Please mount it, then try again.")
+    dt.print(_copy_import_dest_root.." is not mounted. Please mount it, then try again.")
     return
   end
 
@@ -165,4 +169,6 @@ function copy_import()
   end
 end
 
+dt.preferences.register("copy_import", "MainImportDirectory", "directory", "Copy import: root directory to import to (photo library)", "help goes here", "/" )
+dt.preferences.register("copy_import", "FolderPattern", "string", "Copy import: directory naming pattern for imports", "help goes here", "${year}/${month}/${day}" )
 dt.register_event("shortcut",copy_import, "Copy and import images from DCF volumes (such as flash memory cards)")
