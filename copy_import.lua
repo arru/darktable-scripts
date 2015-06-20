@@ -237,7 +237,7 @@ function copy_import()
       end
     end
     if (statsNumFilesFound > statsNumImagesFound) then
-      local numFilesIgnored = statsNumImagesFound -statsNumFilesFound
+      local numFilesIgnored = statsNumFilesFound - statsNumImagesFound
       completionMessage = completionMessage.." "..numFilesIgnored.." unsupported files were ignored."
     end
     dt.print(completionMessage)
