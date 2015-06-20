@@ -187,7 +187,6 @@ function copy_import()
     dt.print(dcimDestRoot.." is not mounted. Will only import from inboxes.")
   end
   
-    
   for _, altConf in pairs(alternate_dests) do
     local dir = altConf[1]
     local dirStructure = altConf[2]
@@ -204,9 +203,9 @@ function copy_import()
       dt.print(dir.." could not be found and was skipped over.")
     end
   end
-
+  
   local copy_progress_job = dt.gui.create_job ("Copying images", true)
-    
+  
   for _,tr in pairs(transactions) do
     tr:load()
     if (tr.type =='image') then
