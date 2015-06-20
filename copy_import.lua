@@ -33,6 +33,25 @@ local function split_path(path)
   return string.match(path, "(.-)([^\\/]-%.?([^%.\\/]*))$")
 end
 
+local function on_same_volume(absPathA, absPathB)
+  local mountedVolumePattern = "^"..mount_root.."/(.-)/"
+  
+  local rootA = string.match(absPathA, mountedVolumePattern)
+  if (rootA == nil) then
+    rootA = absPathA:sub(1,1)
+    assert(rootA == "/")
+  end
+  
+  local rootB = string.match(absPathB, mountedVolumePattern)
+  if (rootB == nil) then
+    rootB = absPathB:sub(1,1)
+    assert(rootB == "/")
+  end
+  
+  local isSameVolume = (rootA == rootB)
+  return isSameVolume
+end
+
 -------- import_transaction class --------
 
 local import_transaction = {
