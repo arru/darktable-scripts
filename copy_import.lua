@@ -120,6 +120,7 @@ function copy_import()
   local statsNumImagesFound = 0
   local statsNumImagesDuplicate = 0
   local statsNumFilesFound = 0
+  local statsNumFilesProcessed = 0
   
   _copy_import_dest_root = dt.preferences.read("copy_import","MainImportDirectory","directory")
   _copy_import_dir_structure_string = dt.preferences.read("copy_import","FolderPattern","directory")
@@ -141,6 +142,8 @@ function copy_import()
     statsNumFilesFound = statsNumFilesFound + 1
   end
   
+  local copy_progress_job = dt.gui.create_job ("Copying images", true)
+    
   for _,tr in pairs(transactions) do
     tr:load()
     if (tr.type =='image') then
@@ -152,7 +155,11 @@ function copy_import()
         statsNumImagesDuplicate = statsNumImagesDuplicate + 1
       end
     end
+    statsNumFilesProcessed = statsNumFilesProcessed + 1
+    copy_progress_job.percent = statsNumFilesProcessed / statsNumFilesFound
   end
+  
+  copy_progress_job.valid = false
   
   for dir,_ in pairs(changedDirs) do
     dt.database.import(dir)
