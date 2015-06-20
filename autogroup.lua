@@ -99,7 +99,7 @@ local function autogroup()
     table.insert(ordered_keys, k)
   end
   
-  progress_job = dt.gui.create_job ("Auto-grouping images", true)
+  local progress_job = dt.gui.create_job ("Auto-grouping images", true)
   
   local progress_analysis_completed = 0
   local num_images = #ordered_keys
