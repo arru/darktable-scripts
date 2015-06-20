@@ -114,6 +114,17 @@ function import_transaction.copy_image(self)
   return destDir
 end
 
+local function scrape_files(root, list)
+  local numFilesFound = 0
+  for imagePath in io.popen("ls "..root.."/*.*"):lines() do
+    local trans = import_transaction.new(imagePath)
+    table.insert(list, trans)
+    numFilesFound = numFilesFound + 1
+  end
+  
+  return numFilesFound
+end
+
 -------- Main function --------
 
 function copy_import()
@@ -128,9 +139,9 @@ function copy_import()
   local testDestRootMounted = "test -d '".._copy_import_dest_root.."'"
   local destMounted = os.execute(testDestRootMounted)
   
-  if (destMounted ~= true) then
-    dt.print(_copy_import_dest_root.." is not mounted. Please mount it, then try again.")
-    return
+  if (destMounted == true) then
+    statsNumFilesFound = statsNumFilesFound +
+      scrape_files(escape_path(mount_root).."/*/DCIM/*", transactions)
   end
 
   transactions = {}
