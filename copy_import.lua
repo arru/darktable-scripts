@@ -31,7 +31,13 @@ end
 -------- Support functions --------
 
 local function interp(s, tab)
-  return (s:gsub('($%b{})', function(w) return tab[w:sub(3, -2)] or w end))
+  local sstring = (s:gsub('($%b{})', function(w) return tab[w:sub(3, -2)] or w end))
+  if (string.find(sstring, "${")) then
+    dt.print (s.." contains an unsupported variable. Remove it, try again!")
+    assert (false)  
+  end
+  
+  return sstring
 end
 getmetatable("").__mod = interp
 
