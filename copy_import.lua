@@ -178,10 +178,11 @@ function copy_import()
   local statsNumFilesFound = 0
   local statsNumFilesProcessed = 0
   
+  local dcimDestRoot = nil
   if(using_multiple_dests) then
-    local dcimDestRoot = dt.preferences.read("copy_import","DCFImportDirectorySelect","enum")
+    dcimDestRoot = dt.preferences.read("copy_import","DCFImportDirectorySelect","enum")
   else
-    local dcimDestRoot = dt.preferences.read("copy_import","DCFImportDirectoryBrowse","directory")
+    dcimDestRoot = dt.preferences.read("copy_import","DCFImportDirectoryBrowse","directory")
   end
   _copy_import_default_folder_structure = dt.preferences.read("copy_import","FolderPattern", "string")
   
