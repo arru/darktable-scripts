@@ -159,7 +159,6 @@ function import_transaction.copy_image(self)
   return destDir
 end
 
-
 -------- Subroutines --------
 
 local function scrape_files(scrapeRoot, destRoot, structure, list)
@@ -191,13 +190,14 @@ function copy_import()
     dcimDestRoot = dt.preferences.read("copy_import","DCFImportDirectoryBrowse","directory")
   end
   _copy_import_default_folder_structure = dt.preferences.read("copy_import","FolderPattern", "string")
-  
+    
   transactions = {}
   changedDirs = {}
   
   local testDestRootMounted = "test -d '"..dcimDestRoot.."'"
   local destMounted = os.execute(testDestRootMounted)
   
+  --Handle DCF (flash card) import
   if (destMounted == true) then
     statsNumFilesFound = statsNumFilesFound +
       scrape_files(escape_path(mount_root).."/*/DCIM/*", dcimDestRoot, nil, transactions)
@@ -205,6 +205,7 @@ function copy_import()
     dt.print(dcimDestRoot.." is not mounted. Will only import from inboxes.")
   end
   
+  --Handle user sorted 'inbox' import
   for _, altConf in pairs(alternate_dests) do
     local dir = altConf[1]
     local dirStructure = altConf[2]
@@ -222,6 +223,7 @@ function copy_import()
     end
   end
   
+  --Read image metadata and copy/move
   local copy_progress_job = dt.gui.create_job ("Copying images", true)
   
   for _,tr in pairs(transactions) do
@@ -241,10 +243,12 @@ function copy_import()
   
   copy_progress_job.valid = false
   
+  --Tell Darktable to import images
   for dir,_ in pairs(changedDirs) do
     dt.database.import(dir)
   end
   
+  --Build completion user message and display it
   if (statsNumFilesFound > 0) then
     local completionMessage = ""
     if (statsNumImagesFound > 0) then
