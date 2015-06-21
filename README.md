@@ -1,3 +1,40 @@
+Copy+import: import ordinary DCF flash memories
+===============================================
+
+### Features
+* Copy and import images from camera memory cards (DCF system) directly into Darktable
+* Optionally sort images manually into multiple import folders using an "inbox" system 
+* Imports are sorted into subfolders, using user-configurable naming patterns
+* Handles destination directories that may be temporarily unavailable (external disks)
+
+###### Settings for
+* Folder naming pattern
+* Destination folder
+* Multiple destination folders are set by adding them to a table in the script file
+* Multiple destinations can have individual folder naming patterns
+
+### Requirements
+* [Exiftool](http://www.sno.phy.queensu.ca/~phil/exiftool/)
+* Built and tested for Darktable 1.6
+
+### Usage
+Put in darktable/lua folder inside darktable's configuration. Add `require "copy_import"` to luarc file. Relaunch Darktable and locate the new command in Darktable's keyboard shortcut preferences. Set a shortcut you'd like (ctrl-I is a good choice) and you're good to go.
+
+First time set preferences as desired. Mount camera memory card(s). Press shortcut and wait until done.
+
+###### Multiple import destinations
+If you like to sort your images by topic or some other scheme, the script supports that workflow too. Add your image folders to `alternate_dests` by following the example comments in the script file. Run the script once and an 'Inbox' folder will be added to each destination. When importing, sort your images by _copying_ them to one of the inboxes - unlike memory card images, inbox images will be __moved, not copied__ to their final destination. Run the script, and all images will be moved into their respective destination folder using the naming rules specified for each.
+
+###### External disk inbox trick
+If you'd like to be able to add new images to the inbox of a drive that is not currently mounted, do as follows:
+1. Add the new drive to `alternate_dests` as above
+1. Create an inbox folder in a suitable place on your _internal_ drive
+1. Make a symlink _from_ the internal drive inbox _to_ the inbox on the external drive (replacing that folder with a symlink). The resulting symlink must still be named "Inbox", the folder on the internal drive can be named whatever you want.
+1. Add images to the new inbox on the internal drive. Whenever the external drive is connected and the script is run, any images in the inbox will be moved to there and imported.
+
+__Advise:__ there is a minor UX bug in Darktable when selecting directories in the preferences; the "shortcuts" to common directories in the menu will not work, that selection will be reset when the preferences window is closed. Instead, select "Other…" and navigate to your photo library manually.
+
+
 Write geotag: write geotags back to file exif data
 ==================================================
 
