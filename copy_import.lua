@@ -14,6 +14,11 @@ local supported_image_formats_init = {"3FR", "ARW", "BAY", "BMQ", "CAP", "CINE",
 local mount_root = "/Volumes"
 local alternate_inbox_name = "Inbox"
 local alternate_dests = {
+  --nil = using the preference setting for folder structure
+  --{"/Users/ThePhotographer/Pictures/Darktable", nil},
+  
+  --folder structure setting overridden for this destination:
+  --{"/Users/ThePhotographer/Pictures/Darktable specials", "${year}/${month}"},
 }
 
 local using_multiple_dests = (#alternate_dests > 0)
