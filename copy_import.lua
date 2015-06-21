@@ -16,6 +16,8 @@ local alternate_inbox_name = "Inbox"
 local alternate_dests = {
 }
 
+local using_multiple_dests = (#alternate_dests > 0)
+
 local supported_image_formats = {}
 for index,ext in pairs(supported_image_formats_init) do
   supported_image_formats[ext] = true
@@ -99,7 +101,7 @@ function import_transaction.load(self)
       = self.tags['Time Original']:match(exif_date_pattern)
     self.date = date
     
-    local dirStructure = _copy_import_dir_structure_string
+    local dirStructure = _copy_import_default_folder_structure
     if (self.destStructure ~= nil) then
       dirStructure = self.destStructure
     end
@@ -171,8 +173,12 @@ function copy_import()
   local statsNumFilesFound = 0
   local statsNumFilesProcessed = 0
   
-  local dcimDestRoot = dt.preferences.read("copy_import","MainImportDirectory","directory")
-  _copy_import_dir_structure_string = dt.preferences.read("copy_import","FolderPattern","directory")
+  if(using_multiple_dests) then
+    local dcimDestRoot = dt.preferences.read("copy_import","DCFImportDirectorySelect","enum")
+  else
+    local dcimDestRoot = dt.preferences.read("copy_import","DCFImportDirectoryBrowse","directory")
+  end
+  _copy_import_default_folder_structure = dt.preferences.read("copy_import","FolderPattern", "string")
   
   transactions = {}
   changedDirs = {}
@@ -245,6 +251,17 @@ function copy_import()
   end
 end
 
-dt.preferences.register("copy_import", "MainImportDirectory", "directory", "Copy import: root directory to import to (photo library)", "help goes here", "/" )
-dt.preferences.register("copy_import", "FolderPattern", "string", "Copy import: directory naming structure for imports", "help goes here", "${year}/${month}/${day}" )
-dt.register_event("shortcut",copy_import, "Copy and import images from DCF volumes (such as flash memory cards)")
+-------- Darktable registration --------
+
+local alternate_dests_paths = {}
+for _,conf in pairs(alternate_dests) do
+  table.insert(alternate_dests_paths, conf[1])
+end
+
+dt.preferences.register("copy_import", "FolderPattern", "string", "Copy import: default directory naming structure for imports", "Create a folder structure within the import destination folder. Available variables: ${year}, ${month}, ${day}. Original filename is appended at the end.", "${year}/${month}/${day}" )
+if(using_multiple_dests) then
+  dt.preferences.register("copy_import", "DCFImportDirectorySelect", "enum", "Copy import: which of the destination directories to import mounted flash memories (DCF) to", "Select which folder (from your own multi-import list) that will be used for importing directly from mounted camera flash storage.", alternate_dests_paths[1], unpack(alternate_dests_paths) )
+else
+  dt.preferences.register("copy_import", "DCFImportDirectoryBrowse", "directory", "Copy import: root directory to import to (photo library)", "Choose the folder that will be used for importing directly from mounted camera flash storage.", "/" )
+end
+dt.register_event("shortcut",copy_import, "Copy and import images from memory cards and '"..alternate_inbox_name.."' folders")
