@@ -226,8 +226,14 @@ function copy_import()
   --Read image metadata and copy/move
   local copy_progress_job = dt.gui.create_job ("Copying images", true)
   
+  --Separate loop for load, so that, in case of error, copying/moving the images
+  --will not fail halfway through
   for _,tr in pairs(transactions) do
+    --TODO rapportera progress
     tr:load()
+  end
+  
+  for _,tr in pairs(transactions) do
     if (tr.type =='image') then
       statsNumImagesFound = statsNumImagesFound + 1
       local destDir = tr:copy_image()
