@@ -1,6 +1,6 @@
 dt = require "darktable"
 
-local exif_date_pattern = "(%d+):(%d+):(%d+) (%d+):(%d+):(%d+)"
+local exif_date_pattern = "^(%d+):(%d+):(%d+) (%d+):(%d+):(%d+)"
 
 --https://www.darktable.org/usermanual/ch02s03.html.php#supported_file_formats
 local supported_image_formats_init = {"3FR", "ARW", "BAY", "BMQ", "CAP", "CINE",
