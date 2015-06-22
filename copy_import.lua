@@ -99,24 +99,37 @@ function import_transaction.load(self)
   
   
   if (ext ~= nil and supported_image_formats[ext:upper()] == true) then
+    self.type = 'image'
     self.tags = {}
     
-    for exifLine in io.popen("exiftool -n -DateTimeOriginal '"..self.srcPath.."'"):lines() do
+    for exifLine in io.popen("exiftool -n -s -Time:all '"..self.srcPath.."'"):lines() do
       local tag, value = string.match(exifLine, "([%a ]-)%s+: (.-)$")
       if (tag ~= nil) then
         self.tags[tag] = value
       end
     end
-    local date = {}    
+    
+    local exifDateTag = self.tags['DateTimeOriginal']
+    if (exifDateTag == nil) then
+      exifDateTag = self.tags['CreateDate']
+    end
+    if (exifDateTag == nil) then
+      exifDateTag = self.tags['ModifyDate']
+    end
+    if (exifDateTag == nil) then
+      exifDateTag = self.tags['FileModifyDate']
+    end
+    assert (exifDateTag ~= nil)
+    
+    local date = {}
     date['year'], date['month'], date['day'], date['hour'], date['minute'], date['seconds']
-      = self.tags['Time Original']:match(exif_date_pattern)
+      = exifDateTag:match(exif_date_pattern)
     self.date = date
     
     local dirStructure = _copy_import_default_folder_structure
     if (self.destStructure ~= nil) then
       dirStructure = self.destStructure
     end
-    self.type = 'image'
     self.destPath = interp(self.destRoot.."/"..dirStructure.."/"..name, self.date)
   end
 end
