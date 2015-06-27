@@ -194,7 +194,8 @@ function copy_import()
   local statsNumImagesFound = 0
   local statsNumImagesDuplicate = 0
   local statsNumFilesFound = 0
-  local statsNumFilesProcessed = 0
+  local statsNumFilesCopied = 0
+  local statsNumFilesScanned = 0
   
   local dcimDestRoot = nil
   if(using_multiple_dests) then
@@ -244,6 +245,9 @@ function copy_import()
   for _,tr in pairs(transactions) do
     --TODO rapportera progress
     tr:load()
+    
+    statsNumFilesScanned = statsNumFilesScanned + 1
+    copy_progress_job.percent = (statsNumFilesScanned*0.5) / statsNumFilesFound
   end
   
   for _,tr in pairs(transactions) do
@@ -256,8 +260,8 @@ function copy_import()
         statsNumImagesDuplicate = statsNumImagesDuplicate + 1
       end
     end
-    statsNumFilesProcessed = statsNumFilesProcessed + 1
-    copy_progress_job.percent = statsNumFilesProcessed / statsNumFilesFound
+    statsNumFilesCopied = statsNumFilesCopied + 1
+    copy_progress_job.percent = 0.5 + (statsNumFilesCopied*0.5) / statsNumFilesFound
   end
   
   copy_progress_job.valid = false
