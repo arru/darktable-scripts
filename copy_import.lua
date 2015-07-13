@@ -1,5 +1,6 @@
 dt = require "darktable"
 
+local _debug = false
 local exif_date_pattern = "^(%d+):(%d+):(%d+) (%d+):(%d+):(%d+)"
 
 --https://www.darktable.org/usermanual/ch02s03.html.php#supported_file_formats
@@ -191,7 +192,7 @@ end
 
 -------- Main function --------
 
-function copy_import()
+local function _copy_import_main()
   local statsNumImagesFound = 0
   local statsNumImagesDuplicate = 0
   local statsNumFilesFound = 0
@@ -291,6 +292,23 @@ function copy_import()
   end
 end
 
+-------- Error handling wrapper --------
+
+function copy_import_handler()
+  if (_debug) then
+    --Do a regular call, which will output complete error traceback to console
+    _copy_import_main()
+  else
+    
+    local main_success, main_error = pcall(_copy_import_main)
+    if (not main_success) then
+      --Do two print calls, in case tostring conversion fails, user will still see a message
+      dt.print("An error prevented Copy import script from completing")
+      dt.print("An error prevented Copy import script from completing: "..tostring(main_error))
+    end
+  end
+end
+
 -------- Darktable registration --------
 
 local alternate_dests_paths = {}
@@ -304,4 +322,4 @@ else
   dt.preferences.register("copy_import", "FolderPattern", "string", "Copy import: default folder naming structure for imports", "Create a folder structure within the import destination folder. Available variables: ${year}, ${month}, ${day}. Original filename is appended at the end.", "${year}/${month}/${day}" )
   dt.preferences.register("copy_import", "DCFImportDirectoryBrowse", "directory", "Copy import: root folder to import to (photo library)", "Choose the folder that will be used for importing directly from mounted camera flash storage.", "/" )
 end
-dt.register_event("shortcut",copy_import, "Copy and import images from memory cards and '"..alternate_inbox_name.."' folders")
+dt.register_event("shortcut", copy_import_handler, "Copy and import images from memory cards and '"..alternate_inbox_name.."' folders")
