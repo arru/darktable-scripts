@@ -1,10 +1,11 @@
 dt = require "darktable"
 table = require "table"
 
-_autogroup_debug = false
 _autogroup_interval_error_margin = 1.25
 
-if _autogroup_debug then dtd = require "darktable.debug" end
+_debug = false
+
+if _debug then dtd = require "darktable.debug" end
 
 -------- Support functions --------
 
@@ -40,7 +41,7 @@ local function _find_cutoff (intervals)
   local cutoff_interval = nil
   local key_group_size = 0
   
-  if _autogroup_debug then  
+  if _debug then  
     print("3:\t"..last_interval)
   end
   
@@ -63,7 +64,7 @@ local function _find_cutoff (intervals)
       key_group_size = g
     end
     
-    if _autogroup_debug then  
+    if _debug then  
       print(g..":\t"..new_interval.."\t("..interval_growth..")")
     end
     last_interval = new_interval
@@ -73,7 +74,7 @@ local function _find_cutoff (intervals)
     cutoff_interval = nil
   end
   
-  if _autogroup_debug then
+  if _debug then
     print ("Using group size: "..(key_group_size))
   end
   
@@ -82,7 +83,7 @@ end
 
 -------- Main script entry point --------
 
-local function autogroup()
+local function _autogroup_main()
   _autogroup_short_threshold = dt.preferences.read("autogroup","LowerGroupingTime","integer")
   _autogroup_long_threshold  = dt.preferences.read("autogroup","UpperGroupingTime","integer")
   no_groups_fallback =  dt.preferences.read("autogroup","NoGroupsFallback","bool")
@@ -159,7 +160,7 @@ local function autogroup()
       _autogroup_long_threshold),_autogroup_short_threshold)
   end
   
-  if _autogroup_debug then
+  if _debug then
     print ("Grouping_interval: "..grouping_interval.." s")
   end
   
@@ -185,8 +186,25 @@ local function autogroup()
   progress_job.valid = false
 end
 
+-------- Error handling wrapper --------
+
+function autogroup_handler()
+  if (_debug) then
+    --Do a regular call, which will output complete error traceback to console
+    _autogroup_main()
+  else
+    
+    local main_success, main_error = pcall(_autogroup_main)
+    if (not main_success) then
+      --Do two print calls, in case tostring conversion fails, user will still see a message
+      dt.print("An error prevented autogroup script from completing")
+      dt.print("An error prevented autogroup script from completing: "..tostring(main_error))
+    end
+  end
+end
+
 dt.preferences.register("autogroup", "LowerGroupingTime", "integer", "Autogroup: images always belong in the same group when time apart (seconds) is no more than", "HELP", 4, 0, 10000 )
 dt.preferences.register("autogroup", "UpperGroupingTime", "integer", "Autogroup: images will never be grouped if time apart (seconds) is more than", "HELP", 60, 2, 10000 )
 dt.preferences.register("autogroup", "NoGroupsFallback", "bool", "Autogroup: guaranteed grouping, use minimum setting for grouping if no groups can be found", "HELP", true )
 
-dt.register_event("shortcut", autogroup, "Auto-group images based on time taken")
+dt.register_event("shortcut", autogroup_handler, "Auto-group images based on time taken")
