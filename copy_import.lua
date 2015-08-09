@@ -104,11 +104,14 @@ function import_transaction.load(self)
     self.tags = {}
     
     for exifLine in io.popen("exiftool -n -s -Time:all '"..self.srcPath.."'"):lines() do
+    local exifProc = io.popen("exiftool -n -s -Time:all '"..self.srcPath.."'")
+    for exifLine in exifProc:lines() do
       local tag, value = string.match(exifLine, "([%a ]-)%s+: (.-)$")
       if (tag ~= nil) then
         self.tags[tag] = value
       end
     end
+    exifProc:close()
     
     local exifDateTag = self.tags['DateTimeOriginal']
     if (exifDateTag == nil) then
