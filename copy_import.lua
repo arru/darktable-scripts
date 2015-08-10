@@ -1,6 +1,8 @@
 dt = require "darktable"
 
 local _debug = false
+local _copy_import_dry_run = false
+
 local exif_date_pattern = "^(%d+):(%d+):(%d+) (%d+):(%d+):(%d+)"
 
 --https://www.darktable.org/usermanual/ch02s03.html.php#supported_file_formats
@@ -164,11 +166,13 @@ function import_transaction.copy_image(self)
       copyMoveCommand = "mv -n '"..self.srcPath.."' '"..self.destPath.."'"
     end
     
-    --print (makeDirCommand)
-    coroutine.yield("RUN_COMMAND", makeDirCommand)
-    
-    --print (copyCommand)
-    coroutine.yield("RUN_COMMAND", copyMoveCommand)
+    if _copy_import_dry_run then
+      print (makeDirCommand)
+      print (copyCommand)
+    else
+      coroutine.yield("RUN_COMMAND", makeDirCommand)
+      coroutine.yield("RUN_COMMAND", copyMoveCommand)
+    end
   else
     destDir = nil
   end
