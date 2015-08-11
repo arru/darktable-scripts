@@ -33,6 +33,12 @@ end
 
 -------- Support functions --------
 
+local function debug_print(message)
+  if _debug then
+    print(message)
+  end
+end
+
 local function interp(s, tab)
   local sstring = (s:gsub('($%b{})', function(w) return tab[w:sub(3, -2)] or w end))
   if (string.find(sstring, "${")) then
