@@ -214,6 +214,7 @@ function import_transaction.transfer_media(self)
     if self.type == 'raw_video' then
       assert (self.date ~= nil)
       convertCommand = "ffmpeg -i '"..self.srcPath.."' -acodec "..audioF.." -ab "..audioQ.." -vcodec copy '"..self.destPath.."'"
+      debug_print("Converting '"..self.srcPath.."' to '"..self.destPath.."'")
       if _copy_import_dry_run == true then
         print (convertCommand)
       else
@@ -233,6 +234,9 @@ function import_transaction.transfer_media(self)
       local copyMoveCommand = "cp -n '"..self.srcPath.."' '"..self.destPath.."'"
       if (on_same_volume(self.srcPath,self.destPath)) then
         copyMoveCommand = "mv -n '"..self.srcPath.."' '"..self.destPath.."'"
+        debug_print("Moving '"..self.srcPath.."' to '"..self.destPath.."'")
+      else
+        debug_print("Copying '"..self.srcPath.."' to '"..self.destPath.."'")
       end
       
       if _copy_import_dry_run == true then
