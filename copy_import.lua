@@ -3,7 +3,13 @@ dt = require "darktable"
 local _debug = false
 local _copy_import_dry_run = false
 
+-------- Constants --------
+
 local exif_date_pattern = "^(%d+):(%d+):(%d+) (%d+):(%d+):(%d+)"
+local audioF = "libfaac"
+local audioQ = "192k"
+local videoContainer = "m4v"
+local avchdPattern = "AVCHD-${year}${month}${day}-${hour}${minute}${name}."..videoContainer
 
 --https://www.darktable.org/usermanual/ch02s03.html.php#supported_file_formats
 local supported_image_formats_init = {"3FR", "ARW", "BAY", "BMQ", "CAP", "CINE",
@@ -12,10 +18,14 @@ local supported_image_formats_init = {"3FR", "ARW", "BAY", "BMQ", "CAP", "CINE",
 "ORF", "PEF", "PFM", "PNG", "PXN", "QTK", "RAF", "RAW", "RDC", "RW1", "RW2",
 "SR2", "SRF", "SRW", "STI", "TIF", "TIFF", "X3F"}
 
+local copied_video_formats_init = {"MP4", "M4V", "AVI", "MOV", "3GP"}
+local converted_video_formats_init = {"MTS"}
+
 -------- Configuration --------
 
 local mount_root = "/Volumes"
 local alternate_inbox_name = "Inbox"
+local avchd_stream_path = "/*/PRIVATE/AVCHD/BDMV/STREAM/*.MTS"
 local alternate_dests = {
   --nil = using the preference setting for folder structure
   --{"/Users/ThePhotographer/Pictures/Darktable", nil},
@@ -29,6 +39,16 @@ local using_multiple_dests = (#alternate_dests > 0)
 local supported_image_formats = {}
 for index,ext in pairs(supported_image_formats_init) do
   supported_image_formats[ext] = true
+end
+
+local copied_video_formats = {}
+for index,ext in pairs(copied_video_formats_init) do
+  copied_video_formats[ext] = true
+end
+
+local converted_video_formats = {}
+for index,ext in pairs(converted_video_formats_init) do
+  converted_video_formats[ext] = true
 end
 
 -------- Support functions --------
