@@ -274,11 +274,15 @@ end
 -------- Main function --------
 
 local function _copy_import_main()
-  local statsNumImagesFound = 0
-  local statsNumImagesDuplicate = 0
-  local statsNumFilesFound = 0
-  local statsNumFilesCopied = 0
-  local statsNumFilesScanned = 0
+  local stats = {}
+  
+  stats['numImagesFound'] = 0
+  stats['numVideosFound'] = 0
+  stats['numFilesDuplicate'] = 0
+  stats['numFilesFound'] = 0
+  stats['numFilesProcessed'] = 0
+  stats['numFilesScanned'] = 0
+  stats['numUnsupportedFound'] = 0
   
   local dcimDestRoot = nil
   if(using_multiple_dests) then
@@ -314,15 +318,15 @@ local function _copy_import_main()
   end
   
   if destMounted == true and videoDestMounted == true then
-    statsNumFilesFound = statsNumFilesFound +
+    stats['numFilesFound'] = stats['numFilesFound'] +
       scrape_files(escape_path(mount_root)..dcimPath, dcimDestRoot, _copy_import_default_folder_structure.."/${name}", transactions)
     
     if _copy_import_video_enabled == true then 
       if video_separate_dest == true then
-          statsNumFilesFound = statsNumFilesFound +
+          stats['numFilesFound'] = stats['numFilesFound'] +
             scrape_files(escape_path(mount_root)..avchd_stream_path, videoDestRoot, video_folder_structure.."/"..avchdPattern, transactions)
       else
-        statsNumFilesFound = statsNumFilesFound +
+        stats['numFilesFound'] = stats['numFilesFound'] +
           scrape_files(escape_path(mount_root)..avchd_stream_path, dcimDestRoot, _copy_import_default_folder_structure.."/"..avchdPattern, transactions)
       end
     end
@@ -341,7 +345,7 @@ local function _copy_import_main()
       local ensureInboxExistsCommand = "mkdir -p '"..dir.."/"..alternate_inbox_name.."'"
       coroutine.yield("RUN_COMMAND", ensureInboxExistsCommand)
       
-      statsNumFilesFound = statsNumFilesFound +
+      stats['numFilesFound'] = stats['numFilesFound'] +
         scrape_files(escape_path(dir).."/"..escape_path(alternate_inbox_name), dir, dirStructure, "${name}", transactions)
     else
       dt.print(dir.." could not be found and was skipped over.")
@@ -349,30 +353,35 @@ local function _copy_import_main()
   end
   
   --Read image metadata and copy/move
-  local copy_progress_job = dt.gui.create_job ("Copying images", true)
+  local copy_progress_job = dt.gui.create_job ("Copying/moving media", true)
   
   --Separate loop for load, so that, in case of error, copying/moving the images
   --will not fail halfway through
   for _,tr in pairs(transactions) do
-    --TODO rapportera progress
     tr:load()
     
-    statsNumFilesScanned = statsNumFilesScanned + 1
-    copy_progress_job.percent = (statsNumFilesScanned*0.5) / statsNumFilesFound
+    stats['numFilesScanned'] = stats['numFilesScanned'] + 1
+    copy_progress_job.percent = (stats['numFilesScanned']*0.5) / stats['numFilesFound']
   end
   
   for _,tr in pairs(transactions) do
     if tr.type ~= nil then
-      statsNumImagesFound = statsNumImagesFound + 1
+      if tr.type == 'image' then
+        stats['numImagesFound'] = stats['numImagesFound'] + 1
+      elseif tr.type == 'video' or tr.type == 'raw_video' then
+        stats['numVideosFound'] = stats['numVideosFound'] + 1
+      else
+        stats['numUnsupportedFound'] = stats['numUnsupportedFound'] + 1
+      end
       local destDir = tr:transfer_media()
       if (destDir ~= nil) then
         changedDirs[destDir] = true
+        stats['numFilesProcessed'] = stats['numFilesProcessed'] + 1
       else
-        statsNumImagesDuplicate = statsNumImagesDuplicate + 1
+        stats['numFilesDuplicate'] = stats['numFilesDuplicate'] + 1
       end
-    statsNumFilesCopied = statsNumFilesCopied + 1
     end
-    copy_progress_job.percent = 0.5 + (statsNumFilesCopied*0.5) / statsNumFilesFound
+    copy_progress_job.percent = 0.5 + ((stats['numFilesProcessed'] + stats['numFilesDuplicate'])*0.5) / stats['numFilesFound']
   end
   
   copy_progress_job.valid = false
@@ -383,21 +392,25 @@ local function _copy_import_main()
   end
   
   --Build completion user message and display it
-  if (statsNumFilesFound > 0) then
+  if (stats['numFilesFound'] > 0) then
     local completionMessage = ""
-    if (statsNumImagesFound > 0) then
-      completionMessage = statsNumImagesFound.." images imported."
-      if (statsNumImagesDuplicate > 0) then
-        completionMessage = completionMessage.." ".." of which "..statsNumImagesDuplicate.." had already been copied."
+    if (stats['numImagesFound'] > 0) then
+      completionMessage = stats['numImagesFound'].." images"
+      if _copy_import_video_enabled == true then
+        completionMessage = completionMessage..", "..stats['numVideosFound'].." videos"
+      end
+      completionMessage = completionMessage.." imported."
+      if (stats['numFilesDuplicate'] > 0) then
+        completionMessage = completionMessage.." "..stats['numFilesDuplicate'].." duplicates were ignored."
       end
     end
-    if (statsNumFilesFound > statsNumImagesFound) then
-      local numFilesIgnored = statsNumFilesFound - statsNumImagesFound
-      completionMessage = completionMessage.." "..numFilesIgnored.." unsupported files were ignored."
+    
+    if stats['numUnsupportedFound'] > 0 then
+      completionMessage = completionMessage.." "..stats['numUnsupportedFound'].." unsupported files were ignored."
     end
     dt.print(completionMessage)
   else
-    dt.print("No DCF files found. Is your memory card not mounted, or empty?")
+    dt.print("No files found. Is your memory card not mounted, or empty?")
   end
 end
 
