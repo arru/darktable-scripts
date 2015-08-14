@@ -1,7 +1,15 @@
 dt = require "darktable"
 
 local _debug = false
+local _copy_import_dry_run = false
+
+-------- Constants --------
+
 local exif_date_pattern = "^(%d+):(%d+):(%d+) (%d+):(%d+):(%d+)"
+local audioF = "libfaac"
+local audioQ = "192k"
+local videoContainer = "m4v"
+local avchdPattern = "AVCHD-${year}${month}${day}-${hour}${minute}${name}."..videoContainer
 
 --https://www.darktable.org/usermanual/ch02s03.html.php#supported_file_formats
 local supported_image_formats_init = {"3FR", "ARW", "BAY", "BMQ", "CAP", "CINE",
@@ -10,10 +18,15 @@ local supported_image_formats_init = {"3FR", "ARW", "BAY", "BMQ", "CAP", "CINE",
 "ORF", "PEF", "PFM", "PNG", "PXN", "QTK", "RAF", "RAW", "RDC", "RW1", "RW2",
 "SR2", "SRF", "SRW", "STI", "TIF", "TIFF", "X3F"}
 
+local copied_video_formats_init = {"MP4", "M4V", "AVI", "MOV", "3GP"}
+local converted_video_formats_init = {"MTS"}
+
 -------- Configuration --------
 
 local mount_root = "/Volumes"
 local alternate_inbox_name = "Inbox"
+local dcimPath = "/*/DCIM/*/*.*"
+local avchd_stream_path = "/*/PRIVATE/AVCHD/BDMV/STREAM/*.MTS"
 local alternate_dests = {
   --nil = using the preference setting for folder structure
   --{"/Users/ThePhotographer/Pictures/Darktable", nil},
@@ -29,13 +42,29 @@ for index,ext in pairs(supported_image_formats_init) do
   supported_image_formats[ext] = true
 end
 
+local copied_video_formats = {}
+for index,ext in pairs(copied_video_formats_init) do
+  copied_video_formats[ext] = true
+end
+
+local converted_video_formats = {}
+for index,ext in pairs(converted_video_formats_init) do
+  converted_video_formats[ext] = true
+end
+
 -------- Support functions --------
+
+local function debug_print(message)
+  if _debug then
+    print(message)
+  end
+end
 
 local function interp(s, tab)
   local sstring = (s:gsub('($%b{})', function(w) return tab[w:sub(3, -2)] or w end))
   if (string.find(sstring, "${")) then
     dt.print (s.." contains an unsupported variable. Remove it, try again!")
-    assert (false)  
+    error()
   end
   
   return sstring
@@ -88,6 +117,9 @@ function import_transaction.new(path, destRoot)
   local self = setmetatable({}, import_transaction)
   self.srcPath = path
   self.destRoot = destRoot
+  
+  assert(self.srcPath ~= "")
+  assert(self.destRoot ~= "")
   return self
 end
 
@@ -101,9 +133,17 @@ function import_transaction.load(self)
   
   if (ext ~= nil and supported_image_formats[ext:upper()] == true) then
     self.type = 'image'
+  elseif _copy_import_video_enabled == true then
+    if (ext ~= nil and converted_video_formats[ext:upper()] == true) then
+      self.type = 'raw_video'
+    elseif (ext ~= nil and copied_video_formats[ext:upper()] == true) then
+      self.type = 'video'
+    end
+  end
+  
+  if self.type ~= nil then
     self.tags = {}
     
-    for exifLine in io.popen("exiftool -n -s -Time:all '"..self.srcPath.."'"):lines() do
     local exifProc = io.popen("exiftool -n -s -Time:all '"..self.srcPath.."'")
     for exifLine in exifProc:lines() do
       local tag, value = string.match(exifLine, "([%a ]-)%s+: (.-)$")
@@ -131,20 +171,26 @@ function import_transaction.load(self)
     self.date = date
     
     local dirStructure = self.destStructure
+
     if (dirStructure == nil) then
       assert(not using_multiple_dests)
       dirStructure = _copy_import_default_folder_structure
     end
+        
+    local subst = {}
+    for k,v in pairs(self.date) do
+      subst[k] = v
+    end
+    subst['name'] = name
     
-    self.destPath = interp(self.destRoot.."/"..dirStructure.."/"..name, self.date)
+    self.destPath = interp(self.destRoot.."/"..dirStructure, subst)
   end
 end
 
-function import_transaction.copy_image(self)
+function import_transaction.transfer_media(self)
   assert (self.destPath ~= nil)
   assert (self.tags ~= nil)
   assert (self.date ~= nil)
-  assert (self.type == 'image')
   
   local destDir,_,_ = split_path(self.destPath)
   
@@ -158,17 +204,47 @@ function import_transaction.copy_image(self)
 
   assert(fileExists ~= fileNotExists)
   
-  if (fileExists == nil) then
-    local copyMoveCommand = "cp -n '"..self.srcPath.."' '"..self.destPath.."'"
-    if (on_same_volume(self.srcPath,self.destPath)) then
-      copyMoveCommand = "mv -n '"..self.srcPath.."' '"..self.destPath.."'"
+  if (fileExists == nil) then    
+    if _copy_import_dry_run then
+      print (makeDirCommand)
+    else
+      coroutine.yield("RUN_COMMAND", makeDirCommand)
     end
     
-    --print (makeDirCommand)
-    coroutine.yield("RUN_COMMAND", makeDirCommand)
-    
-    --print (copyCommand)
-    coroutine.yield("RUN_COMMAND", copyMoveCommand)
+    if self.type == 'raw_video' then
+      assert (self.date ~= nil)
+      convertCommand = "ffmpeg -i '"..self.srcPath.."' -acodec "..audioF.." -ab "..audioQ.." -vcodec copy '"..self.destPath.."'"
+      debug_print("Converting '"..self.srcPath.."' to '"..self.destPath.."'")
+      if _copy_import_dry_run == true then
+        print (convertCommand)
+      else
+        coroutine.yield("RUN_COMMAND", convertCommand)
+      end
+      
+      --adjust file date attributes
+      local datestring = self.date['year']..self.date['month']..self.date['day']..self.date['hour']..self.date['minute'].."."..self.date['seconds']
+      local touchCommand = "touch -c -mt "..datestring.." '"..self.destPath.."'"
+      if _copy_import_dry_run then
+        print (touchCommand)
+      else
+        coroutine.yield("RUN_COMMAND", touchCommand)
+      end
+    else
+      assert (self.type == 'image' or self.type == 'video')
+      local copyMoveCommand = "cp -n '"..self.srcPath.."' '"..self.destPath.."'"
+      if (on_same_volume(self.srcPath,self.destPath)) then
+        copyMoveCommand = "mv -n '"..self.srcPath.."' '"..self.destPath.."'"
+        debug_print("Moving '"..self.srcPath.."' to '"..self.destPath.."'")
+      else
+        debug_print("Copying '"..self.srcPath.."' to '"..self.destPath.."'")
+      end
+      
+      if _copy_import_dry_run == true then
+        print (copyCommand)
+      else
+        coroutine.yield("RUN_COMMAND", copyMoveCommand)
+      end
+    end
   else
     destDir = nil
   end
@@ -180,9 +256,11 @@ end
 
 -------- Subroutines --------
 
-local function scrape_files(scrapeRoot, destRoot, structure, list)
+local function scrape_files(scrapePattern, destRoot, structure, list)
   local numFilesFound = 0
-  for imagePath in io.popen("ls "..scrapeRoot.."/*.*"):lines() do
+  debug_print ("Scraping "..scrapePattern.." to "..destRoot)
+
+  for imagePath in io.popen("ls "..scrapePattern):lines() do
     local trans = import_transaction.new(imagePath, destRoot)
     trans.destStructure = structure
     
@@ -196,11 +274,15 @@ end
 -------- Main function --------
 
 local function _copy_import_main()
-  local statsNumImagesFound = 0
-  local statsNumImagesDuplicate = 0
-  local statsNumFilesFound = 0
-  local statsNumFilesCopied = 0
-  local statsNumFilesScanned = 0
+  local stats = {}
+  
+  stats['numImagesFound'] = 0
+  stats['numVideosFound'] = 0
+  stats['numFilesDuplicate'] = 0
+  stats['numFilesFound'] = 0
+  stats['numFilesProcessed'] = 0
+  stats['numFilesScanned'] = 0
+  stats['numUnsupportedFound'] = 0
   
   local dcimDestRoot = nil
   if(using_multiple_dests) then
@@ -208,8 +290,16 @@ local function _copy_import_main()
   else
     dcimDestRoot = dt.preferences.read("copy_import","DCFImportDirectoryBrowse","directory")
   end
+  
+  _copy_import_video_enabled = dt.preferences.read("copy_import","VideoImportEnabled", "bool")
+  local video_separate_dest = not dt.preferences.read("copy_import","VideoImportCombined", "bool")
+  local videoDestRoot = dcimDestRoot
+  if video_separate_dest then
+    videoDestRoot = dt.preferences.read("copy_import","VideoImportDirectory","directory")
+  end
   _copy_import_default_folder_structure = dt.preferences.read("copy_import","FolderPattern", "string")
-    
+  local video_folder_structure = dt.preferences.read("copy_import","VideoFolderPattern", "string")
+
   transactions = {}
   changedDirs = {}
   
@@ -217,13 +307,33 @@ local function _copy_import_main()
   local destMounted = os.execute(testDestRootMounted)
   
   --Handle DCF (flash card) import
-  if (destMounted == true) then
-    statsNumFilesFound = statsNumFilesFound +
-      scrape_files(escape_path(mount_root).."/*/DCIM/*", dcimDestRoot, _copy_import_default_folder_structure, transactions)
-  else
-    dt.print(dcimDestRoot.." is not mounted. Will only import from inboxes.")
+  
+  --Note: videoDestMounted will be true if video import is disabled in preferences
+  local videoDestMounted = true
+  if _copy_import_video_enabled then 
+    if video_separate_dest then
+      local testVideoDestRootMounted = "test -d '"..videoDestRoot.."'"
+      videoDestMounted = os.execute(testVideoDestRootMounted)
+    end
   end
   
+  if destMounted == true and videoDestMounted == true then
+    stats['numFilesFound'] = stats['numFilesFound'] +
+      scrape_files(escape_path(mount_root)..dcimPath, dcimDestRoot, _copy_import_default_folder_structure.."/${name}", transactions)
+    
+    if _copy_import_video_enabled == true then 
+      if video_separate_dest == true then
+          stats['numFilesFound'] = stats['numFilesFound'] +
+            scrape_files(escape_path(mount_root)..avchd_stream_path, videoDestRoot, video_folder_structure.."/"..avchdPattern, transactions)
+      else
+        stats['numFilesFound'] = stats['numFilesFound'] +
+          scrape_files(escape_path(mount_root)..avchd_stream_path, dcimDestRoot, _copy_import_default_folder_structure.."/"..avchdPattern, transactions)
+      end
+    end
+  else
+    dt.print(dcimDestRoot.." is not mounted. Memory card contents will not be imported.")
+  end
+
   --Handle user sorted 'inbox' import
   for _, altConf in pairs(alternate_dests) do
     local dir = altConf[1]
@@ -235,38 +345,43 @@ local function _copy_import_main()
       local ensureInboxExistsCommand = "mkdir -p '"..dir.."/"..alternate_inbox_name.."'"
       coroutine.yield("RUN_COMMAND", ensureInboxExistsCommand)
       
-      statsNumFilesFound = statsNumFilesFound +
-        scrape_files(escape_path(dir).."/"..escape_path(alternate_inbox_name), dir, dirStructure, transactions)
+      stats['numFilesFound'] = stats['numFilesFound'] +
+        scrape_files(escape_path(dir).."/"..escape_path(alternate_inbox_name), dir, dirStructure, "${name}", transactions)
     else
       dt.print(dir.." could not be found and was skipped over.")
     end
   end
   
   --Read image metadata and copy/move
-  local copy_progress_job = dt.gui.create_job ("Copying images", true)
+  local copy_progress_job = dt.gui.create_job ("Copying/moving media", true)
   
   --Separate loop for load, so that, in case of error, copying/moving the images
   --will not fail halfway through
   for _,tr in pairs(transactions) do
-    --TODO rapportera progress
     tr:load()
     
-    statsNumFilesScanned = statsNumFilesScanned + 1
-    copy_progress_job.percent = (statsNumFilesScanned*0.5) / statsNumFilesFound
+    stats['numFilesScanned'] = stats['numFilesScanned'] + 1
+    copy_progress_job.percent = (stats['numFilesScanned']*0.5) / stats['numFilesFound']
   end
   
   for _,tr in pairs(transactions) do
-    if (tr.type =='image') then
-      statsNumImagesFound = statsNumImagesFound + 1
-      local destDir = tr:copy_image()
+    if tr.type ~= nil then
+      if tr.type == 'image' then
+        stats['numImagesFound'] = stats['numImagesFound'] + 1
+      elseif tr.type == 'video' or tr.type == 'raw_video' then
+        stats['numVideosFound'] = stats['numVideosFound'] + 1
+      else
+        stats['numUnsupportedFound'] = stats['numUnsupportedFound'] + 1
+      end
+      local destDir = tr:transfer_media()
       if (destDir ~= nil) then
         changedDirs[destDir] = true
+        stats['numFilesProcessed'] = stats['numFilesProcessed'] + 1
       else
-        statsNumImagesDuplicate = statsNumImagesDuplicate + 1
+        stats['numFilesDuplicate'] = stats['numFilesDuplicate'] + 1
       end
     end
-    statsNumFilesCopied = statsNumFilesCopied + 1
-    copy_progress_job.percent = 0.5 + (statsNumFilesCopied*0.5) / statsNumFilesFound
+    copy_progress_job.percent = 0.5 + ((stats['numFilesProcessed'] + stats['numFilesDuplicate'])*0.5) / stats['numFilesFound']
   end
   
   copy_progress_job.valid = false
@@ -277,21 +392,28 @@ local function _copy_import_main()
   end
   
   --Build completion user message and display it
-  if (statsNumFilesFound > 0) then
+  if (stats['numFilesFound'] > 0) then
+    assert(stats ['numFilesFound'] == stats['numFilesProcessed'] + stats['numFilesDuplicate'] + stats['numUnsupportedFound'])
+    assert(stats['numUnsupportedFound'] == stats['numFilesFound'] - stats['numImagesFound'] - stats['numVideosFound'])
+    
     local completionMessage = ""
-    if (statsNumImagesFound > 0) then
-      completionMessage = statsNumImagesFound.." images imported."
-      if (statsNumImagesDuplicate > 0) then
-        completionMessage = completionMessage.." ".." of which "..statsNumImagesDuplicate.." had already been copied."
+    if (stats['numImagesFound'] > 0) then
+      completionMessage = stats['numImagesFound'].." images"
+      if _copy_import_video_enabled == true then
+        completionMessage = completionMessage..", "..stats['numVideosFound'].." videos"
+      end
+      completionMessage = completionMessage.." imported."
+      if (stats['numFilesDuplicate'] > 0) then
+        completionMessage = completionMessage.." "..stats['numFilesDuplicate'].." duplicates were ignored."
       end
     end
-    if (statsNumFilesFound > statsNumImagesFound) then
-      local numFilesIgnored = statsNumFilesFound - statsNumImagesFound
-      completionMessage = completionMessage.." "..numFilesIgnored.." unsupported files were ignored."
+    
+    if stats['numUnsupportedFound'] > 0 then
+      completionMessage = completionMessage.." "..stats['numUnsupportedFound'].." unsupported files were ignored."
     end
     dt.print(completionMessage)
   else
-    dt.print("No DCF files found. Is your memory card not mounted, or empty?")
+    dt.print("No files found. Is your memory card not mounted, or empty?")
   end
 end
 
@@ -312,7 +434,7 @@ function copy_import_handler()
   end
 end
 
--------- Darktable registration --------
+-------- Preferences registration --------
 
 local alternate_dests_paths = {}
 for _,conf in pairs(alternate_dests) do
@@ -325,4 +447,12 @@ else
   dt.preferences.register("copy_import", "FolderPattern", "string", "Copy import: default folder naming structure for imports", "Create a folder structure within the import destination folder. Available variables: ${year}, ${month}, ${day}. Original filename is appended at the end.", "${year}/${month}/${day}" )
   dt.preferences.register("copy_import", "DCFImportDirectoryBrowse", "directory", "Copy import: root folder to import to (photo library)", "Choose the folder that will be used for importing directly from mounted camera flash storage.", "/" )
 end
+
+dt.preferences.register("copy_import", "VideoImportEnabled", "bool", "Copy import: import video", "", false )
+dt.preferences.register("copy_import", "VideoImportCombined", "bool", "Copy import: Import video to same location as photos", "", false )
+dt.preferences.register("copy_import", "VideoImportDirectory", "directory", "Copy import: Separate video import destination (if not stored together with photos)", "", "~/Movies" )
+dt.preferences.register("copy_import", "VideoFolderPattern", "string", "Copy import: Separate video folder pattern", "", "${year}/${month}/${day}" )
+
+-------- Event registration --------
+
 dt.register_event("shortcut", copy_import_handler, "Copy and import images from memory cards and '"..alternate_inbox_name.."' folders")
