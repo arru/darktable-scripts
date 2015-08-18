@@ -345,8 +345,9 @@ local function _copy_import_main()
       local ensureInboxExistsCommand = "mkdir -p '"..dir.."/"..alternate_inbox_name.."'"
       coroutine.yield("RUN_COMMAND", ensureInboxExistsCommand)
       
+      --Note: without any wildcard * in path, ls will list filenames only, wihout full path
       stats['numFilesFound'] = stats['numFilesFound'] +
-        scrape_files(escape_path(dir).."/"..escape_path(alternate_inbox_name), dir, dirStructure, "${name}", transactions)
+        scrape_files(escape_path(dir).."/"..escape_path(alternate_inbox_name).."/*", dir, dirStructure.."/${name}", transactions)
     else
       dt.print(dir.." could not be found and was skipped over.")
     end
