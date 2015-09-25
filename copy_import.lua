@@ -218,7 +218,8 @@ function import_transaction.transfer_media(self)
       if _copy_import_dry_run == true then
         print (convertCommand)
       else
-        coroutine.yield("RUN_COMMAND", convertCommand)
+        local conversionSuccess = os.execute(convertCommand)
+        assert(conversionSuccess == true)
       end
       
       --adjust file date attributes
