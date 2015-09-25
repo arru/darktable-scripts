@@ -3,6 +3,8 @@ dt = require "darktable"
 local _debug = false
 local _copy_import_dry_run = false
 
+local ffmpeg_available = (os.execute("ffmpeg -h") ~= nil)
+
 -------- Constants --------
 
 local exif_date_pattern = "^(%d+):(%d+):(%d+) (%d+):(%d+):(%d+)"
@@ -293,6 +295,9 @@ local function _copy_import_main()
   end
   
   _copy_import_video_enabled = dt.preferences.read("copy_import","VideoImportEnabled", "bool")
+  if(_copy_import_video_enabled) then
+    assert(ffmpeg_available)
+  end
   local video_separate_dest = not dt.preferences.read("copy_import","VideoImportCombined", "bool")
   local videoDestRoot = dcimDestRoot
   if video_separate_dest then
