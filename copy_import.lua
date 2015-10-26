@@ -3,7 +3,8 @@ dt = require "darktable"
 local _debug = false
 local _copy_import_dry_run = false
 
-local ffmpeg_available = (os.execute("ffmpeg -h") ~= nil)
+local ffmpeg_path = None --updated in preferences registration section below
+local ffmpeg_available = false
 
 -------- Constants --------
 
@@ -137,6 +138,7 @@ function import_transaction.load(self)
     self.type = 'image'
   elseif _copy_import_video_enabled == true then
     if (ext ~= nil and converted_video_formats[ext:upper()] == true) then
+      assert(ffmpeg_available)
       self.type = 'raw_video'
     elseif (ext ~= nil and copied_video_formats[ext:upper()] == true) then
       self.type = 'video'
@@ -215,7 +217,7 @@ function import_transaction.transfer_media(self)
     
     if self.type == 'raw_video' then
       assert (self.date ~= nil)
-      convertCommand = "ffmpeg -i '"..self.srcPath.."' -acodec "..audioF.." -ab "..audioQ.." -vcodec copy '"..self.destPath.."'"
+      convertCommand = ffmpeg_path.." -i '"..self.srcPath.."' -acodec "..audioF.." -ab "..audioQ.." -vcodec copy '"..self.destPath.."'"
       debug_print("Converting '"..self.srcPath.."' to '"..self.destPath.."'")
       if _copy_import_dry_run == true then
         print (convertCommand)
@@ -447,6 +449,10 @@ local alternate_dests_paths = {}
 for _,conf in pairs(alternate_dests) do
   table.insert(alternate_dests_paths, conf[1])
 end
+
+dt.preferences.register("copy_import", "FFMPEGPath", "file", "Location of FFMPEG tool (needed for video conversion)", "help", "/opt/local/bin/ffmpeg" )
+ffmpeg_path = dt.preferences.read("copy_import", "FFMPEGPath", "file")
+ffmpeg_available = (os.execute(ffmpeg_path.." -h") ~= nil)
 
 if(using_multiple_dests) then
   dt.preferences.register("copy_import", "DCFImportDirectorySelect", "enum", "Copy import: which of the destination folders to import mounted flash memories (DCF) to", "Select which folder (from your own multi-import list) that will be used for importing directly from mounted camera flash storage.", alternate_dests_paths[1], unpack(alternate_dests_paths) )
