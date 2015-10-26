@@ -1,6 +1,8 @@
 dt = require "darktable"
 table = require "table"
 
+local _debug = false
+
 local nil_geo_tag = dt.tags.create("darktable|geo|nil")
 
 local function getImagePath(i) return "'"..i.path.."/"..i.filename.."'" end
@@ -23,7 +25,7 @@ local function read_geotags(image)
   return tags
 end
 
-local function write_geotag()
+local function _write_geotag()
   local images_to_write = {}
   local image_table = dt.gui.selection()
   local precheck_fraction = 0.2
@@ -93,7 +95,7 @@ local function write_geotag()
   end
 end
 
-local function reset_geotag()
+local function _reset_geotag()
   local image_table = dt.gui.selection()
   local processed_count = 0
   local skipped_count = 0
@@ -135,10 +137,43 @@ local function reset_geotag()
   dt.print(processed_count.." image geotags reset ("..skipped_count.." "..skipped_verb..")")
 end
 
+-------- Error handling wrappers --------
+
+function write_geotag_handler()
+  if (_debug) then
+    --Do a regular call, which will output complete error traceback to console
+    _write_geotag()
+  else
+    
+    local main_success, main_error = pcall(_write_geotag)
+    if (not main_success) then
+      --Do two print calls, in case tostring conversion fails, user will still see a message
+      dt.print("An error prevented write geotag script from completing")
+      dt.print("An error prevented write geotag script from completing: "..tostring(main_error))
+    end
+  end
+end
+
+function reset_geotag_handler()
+  if (_debug) then
+    --Do a regular call, which will output complete error traceback to console
+    _reset_geotag()
+  else
+    
+    local main_success, main_error = pcall(_reset_geotag)
+    if (not main_success) then
+      --Do two print calls, in case tostring conversion fails, user will still see a message
+      dt.print("An error prevented reset geotag script from completing")
+      dt.print("An error prevented reset geotag script from completing: "..tostring(main_error))
+    end
+  end
+end
+
+
 dt.preferences.register("geotag_io", "OverwriteGeotag", "bool", "Write geotag: allow overwriting existing file geotag", "Replace existing geotag in file. If unchecked, files with lat & lon data will be silently skipped.", false )
 dt.preferences.register("geotag_io", "DeleteOriginal", "bool", "Write geotag: delete original image file", "Delete original image file after updating EXIF. When off, keep it in the same folder, appending _original to its name", false )
 dt.preferences.register("geotag_io", "KeepFileDate", "bool", "Write geotag: carry over original image file's creation & modification date", "Sets same creation & modification date as original file when writing EXIF. When off, time and date will be that at time of writing new file, to reflect that it was altered. Camera EXIF date and time code are never altered, regardless of this setting.", true )
 dt.preferences.register("geotag_io", "ClearIfEmpty", "bool", "Reset geotag: if file has no geotag, clear Darktable geotag when resetting.", "Clear Darktable geotag if file about to be reset has no geotag. When off, Darktable geotag will only be altered if geotag exists in file.", true )
 
-dt.register_event("shortcut",write_geotag, "Write geotag to image file")
-dt.register_event("shortcut",reset_geotag, "Reset geotag to value in file")
+dt.register_event("shortcut",write_geotag_handler, "Write geotag to image file")
+dt.register_event("shortcut",reset_geotag_handler, "Reset geotag to value in file")
