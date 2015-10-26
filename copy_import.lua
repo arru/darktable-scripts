@@ -290,24 +290,37 @@ local function _copy_import_main()
   stats['numUnsupportedFound'] = 0
   
   local dcimDestRoot = nil
+  local video_separate_dest = nil
+
   if(using_multiple_dests) then
-    dcimDestRoot = dt.preferences.read("copy_import","DCFImportDirectorySelect","enum")
+    dcimDestRoot = dt.preferences.read("copy_import","DCFImportDirectorySelect", "enum")
+    video_separate_dest = true
   else
     dcimDestRoot = dt.preferences.read("copy_import","DCFImportDirectoryBrowse","directory")
+    video_separate_dest = not dt.preferences.read("copy_import","VideoImportCombined", "bool")
   end
   
   _copy_import_video_enabled = dt.preferences.read("copy_import","VideoImportEnabled", "bool")
-  if(_copy_import_video_enabled) then
-    assert(ffmpeg_available)
-  end
-  local video_separate_dest = not dt.preferences.read("copy_import","VideoImportCombined", "bool")
   local videoDestRoot = dcimDestRoot
-  if video_separate_dest then
-    videoDestRoot = dt.preferences.read("copy_import","VideoImportDirectory","directory")
-  end
+  local video_folder_structure = nil
+  
   _copy_import_default_folder_structure = dt.preferences.read("copy_import","FolderPattern", "string")
-  local video_folder_structure = dt.preferences.read("copy_import","VideoFolderPattern", "string")
 
+  if using_multiple_dests then
+    videoDestRoot = dt.preferences.read("copy_import","VideoImportDirectorySelect","enum")
+    for _, altConf in pairs(alternate_dests) do
+      local dir = altConf[1]
+      if dir == videoDestRoot then
+        video_folder_structure = altConf[2]
+        break
+      end
+    end
+  elseif video_separate_dest then
+    videoDestRoot = dt.preferences.read("copy_import","VideoImportDirectoryBrowse","directory")
+    video_folder_structure = dt.preferences.read("copy_import","VideoFolderPattern", "string")
+  end
+  assert (video_folder_structure ~= nil)
+  
   transactions = {}
   changedDirs = {}
   
@@ -316,16 +329,13 @@ local function _copy_import_main()
   
   --Handle DCF (flash card) import
   
-  --Note: videoDestMounted will be true if video import is disabled in preferences
-  local videoDestMounted = true
-  if _copy_import_video_enabled then 
-    if video_separate_dest then
-      local testVideoDestRootMounted = "test -d '"..videoDestRoot.."'"
-      videoDestMounted = os.execute(testVideoDestRootMounted)
-    end
+  local videoDestMounted = false
+  if _copy_import_video_enabled then
+    local testVideoDestRootMounted = "test -d '"..videoDestRoot.."'"
+    videoDestMounted = os.execute(testVideoDestRootMounted)
   end
   
-  if destMounted == true and videoDestMounted == true then
+  if destMounted == true and (not _copy_import_video_enabled or videoDestMounted) then
     stats['numFilesFound'] = stats['numFilesFound'] +
       scrape_files(escape_path(mount_root)..dcimPath, dcimDestRoot, _copy_import_default_folder_structure.."/${name}", transactions)
     
@@ -456,15 +466,16 @@ ffmpeg_available = (os.execute(ffmpeg_path.." -h") ~= nil)
 
 if(using_multiple_dests) then
   dt.preferences.register("copy_import", "DCFImportDirectorySelect", "enum", "Copy import: which of the destination folders to import mounted flash memories (DCF) to", "Select which folder (from your own multi-import list) that will be used for importing directly from mounted camera flash storage.", alternate_dests_paths[1], unpack(alternate_dests_paths) )
+  dt.preferences.register("copy_import", "VideoImportDirectorySelect", "enum", "Copy import: separate video import destination (if not stored together with photos)", "Select which folder (from your own multi-import list) that will be used for importing directly from mounted camera flash storage.", alternate_dests_paths[1], unpack(alternate_dests_paths) )
 else
-  dt.preferences.register("copy_import", "FolderPattern", "string", "Copy import: default folder naming structure for imports", "Create a folder structure within the import destination folder. Available variables: ${year}, ${month}, ${day}. Original filename is appended at the end.", "${year}/${month}/${day}" )
   dt.preferences.register("copy_import", "DCFImportDirectoryBrowse", "directory", "Copy import: root folder to import to (photo library)", "Choose the folder that will be used for importing directly from mounted camera flash storage.", "/" )
+  dt.preferences.register("copy_import", "FolderPattern", "string", "Copy import: default folder naming structure for imports", "Create a folder structure within the import destination folder. Available variables: ${year}, ${month}, ${day}. Original filename is appended at the end.", "${year}/${month}/${day}" )
+  dt.preferences.register("copy_import", "VideoImportDirectoryBrowse", "directory", "Copy import: Separate video import destination (if not stored together with photos)", "", "~/Movies" )
+  dt.preferences.register("copy_import", "VideoFolderPattern", "string", "Copy import: Separate video folder pattern", "", "${year}/${month}/${day}" )
+  dt.preferences.register("copy_import", "VideoImportCombined", "bool", "Copy import: Import video to same location as photos", "", false )
 end
 
 dt.preferences.register("copy_import", "VideoImportEnabled", "bool", "Copy import: import video", "", false )
-dt.preferences.register("copy_import", "VideoImportCombined", "bool", "Copy import: Import video to same location as photos", "", false )
-dt.preferences.register("copy_import", "VideoImportDirectory", "directory", "Copy import: Separate video import destination (if not stored together with photos)", "", "~/Movies" )
-dt.preferences.register("copy_import", "VideoFolderPattern", "string", "Copy import: Separate video folder pattern", "", "${year}/${month}/${day}" )
 
 -------- Event registration --------
 
