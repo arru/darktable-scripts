@@ -118,7 +118,7 @@ local function reset_geotag()
       image.longitude = lon
       processed_count = processed_count + 1
     else
-      if (dt.preferences.read("write_geotag","ClearIfEmpty","bool")) then
+      if (dt.preferences.read("geotag_io","ClearIfEmpty","bool")) then
         image.latitude = nil
         image.longitude = nil
         --Mitigation for bug http://darktable.org/redmine/issues/10450
@@ -129,7 +129,7 @@ local function reset_geotag()
   end
   
   local skipped_verb = "skipped"
-  if (dt.preferences.read("write_geotag","ClearIfEmpty","bool")) then
+  if (dt.preferences.read("geotag_io","ClearIfEmpty","bool")) then
     skipped_verb = "cleared"
   end
   dt.print(processed_count.." image geotags reset ("..skipped_count.." "..skipped_verb..")")
@@ -138,7 +138,7 @@ end
 dt.preferences.register("geotag_io", "OverwriteGeotag", "bool", "Write geotag: allow overwriting existing file geotag", "Replace existing geotag in file. If unchecked, files with lat & lon data will be silently skipped.", false )
 dt.preferences.register("geotag_io", "DeleteOriginal", "bool", "Write geotag: delete original image file", "Delete original image file after updating EXIF. When off, keep it in the same folder, appending _original to its name", false )
 dt.preferences.register("geotag_io", "KeepFileDate", "bool", "Write geotag: carry over original image file's creation & modification date", "Sets same creation & modification date as original file when writing EXIF. When off, time and date will be that at time of writing new file, to reflect that it was altered. Camera EXIF date and time code are never altered, regardless of this setting.", true )
-dt.preferences.register("write_geotag", "ClearIfEmpty", "bool", "Reset geotag: if file has no geotag, clear Darktable geotag when resetting.", "Clear Darktable geotag if file about to be reset has no geotag. When off, Darktable geotag will only be altered if geotag exists in file.", true )
+dt.preferences.register("geotag_io", "ClearIfEmpty", "bool", "Reset geotag: if file has no geotag, clear Darktable geotag when resetting.", "Clear Darktable geotag if file about to be reset has no geotag. When off, Darktable geotag will only be altered if geotag exists in file.", true )
 
 dt.register_event("shortcut",write_geotag, "Write geotag to image file")
 dt.register_event("shortcut",reset_geotag, "Reset geotag to value in file")
