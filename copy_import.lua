@@ -261,7 +261,8 @@ function import_transaction.transfer_media(self)
     destDir = nil
   end
   
-  self.destFileExists = true
+  self.destFileExists = file_exists(self.destPath)
+  assert(self.destFileExists == true)
   
   return destDir
 end
