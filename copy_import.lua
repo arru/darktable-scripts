@@ -4,6 +4,7 @@ local _debug = false
 local _copy_import_dry_run = false
 
 local ffmpeg_path = None --updated in preferences registration section below
+local exiftool_path = None
 local ffmpeg_available = false
 
 -------- Constants --------
@@ -148,7 +149,7 @@ function import_transaction.load(self)
   if self.type ~= nil then
     self.tags = {}
     
-    local exifProc = io.popen("exiftool -n -s -Time:all '"..self.srcPath.."'")
+    local exifProc = io.popen(exiftool_path.." -n -s -Time:all '"..self.srcPath.."'")
     for exifLine in exifProc:lines() do
       local tag, value = string.match(exifLine, "([%a ]-)%s+: (.-)$")
       if (tag ~= nil) then
@@ -289,6 +290,13 @@ local function _copy_import_main()
   stats['numFilesScanned'] = 0
   stats['numUnsupportedFound'] = 0
   
+  exiftool_path = dt.preferences.read("copy_import", "ExifToolPath", "file")
+
+  if (os.execute(exiftool_path.." -ver") == nil) then
+    dt.print("Could not find ExifTool at "..exiftool_path)
+    return
+  end
+
   local dcimDestRoot = nil
   local video_separate_dest = nil
 
@@ -463,6 +471,8 @@ end
 dt.preferences.register("copy_import", "FFMPEGPath", "file", "Location of FFMPEG tool (needed for video conversion)", "help", "/opt/local/bin/ffmpeg" )
 ffmpeg_path = dt.preferences.read("copy_import", "FFMPEGPath", "file")
 ffmpeg_available = (os.execute(ffmpeg_path.." -h") ~= nil)
+
+dt.preferences.register("copy_import", "ExifToolPath", "file", "Location of ExifTool (required)", "help", "/usr/local/bin/exiftool" )
 
 if(using_multiple_dests) then
   dt.preferences.register("copy_import", "DCFImportDirectorySelect", "enum", "Copy import: which of the destination folders to import mounted flash memories (DCF) to", "Select which folder (from your own multi-import list) that will be used for importing directly from mounted camera flash storage.", alternate_dests_paths[1], unpack(alternate_dests_paths) )
