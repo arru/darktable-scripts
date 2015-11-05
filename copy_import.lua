@@ -478,9 +478,9 @@ for _,conf in pairs(alternate_dests) do
   table.insert(alternate_dests_paths, conf[1])
 end
 
-dt.preferences.register("copy_import", "FFMPEGPath", "file", "Location of FFMPEG tool (needed for video conversion)", "help", "/opt/local/bin/ffmpeg" )
+dt.preferences.register("copy_import", "FFMPEGPath", "file", "Copy import: Location of FFMPEG tool (needed for video conversion)", "help", "/opt/local/bin/ffmpeg" )
 
-dt.preferences.register("copy_import", "ExifToolPath", "file", "Location of ExifTool (required)", "help", "/usr/local/bin/exiftool" )
+dt.preferences.register("copy_import", "ExifToolPath", "file", "Copy import: Location of ExifTool (required)", "help", "/usr/local/bin/exiftool" )
 
 if(using_multiple_dests) then
   dt.preferences.register("copy_import", "DCFImportDirectorySelect", "enum", "Copy import: which of the destination folders to import mounted flash memories (DCF) to", "Select which folder (from your own multi-import list) that will be used for importing directly from mounted camera flash storage.", alternate_dests_paths[1], unpack(alternate_dests_paths) )
