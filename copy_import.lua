@@ -291,12 +291,15 @@ local function _copy_import_main()
   stats['numUnsupportedFound'] = 0
   
   exiftool_path = dt.preferences.read("copy_import", "ExifToolPath", "file")
+  ffmpeg_path = dt.preferences.read("copy_import", "FFMPEGPath", "file")
+
+  ffmpeg_available = (os.execute(ffmpeg_path.." -h") ~= nil)
 
   if (os.execute(exiftool_path.." -ver") == nil) then
     dt.print("Could not find ExifTool at "..exiftool_path)
     return
   end
-
+  
   local dcimDestRoot = nil
   local video_separate_dest = nil
 
@@ -469,8 +472,6 @@ for _,conf in pairs(alternate_dests) do
 end
 
 dt.preferences.register("copy_import", "FFMPEGPath", "file", "Location of FFMPEG tool (needed for video conversion)", "help", "/opt/local/bin/ffmpeg" )
-ffmpeg_path = dt.preferences.read("copy_import", "FFMPEGPath", "file")
-ffmpeg_available = (os.execute(ffmpeg_path.." -h") ~= nil)
 
 dt.preferences.register("copy_import", "ExifToolPath", "file", "Location of ExifTool (required)", "help", "/usr/local/bin/exiftool" )
 
