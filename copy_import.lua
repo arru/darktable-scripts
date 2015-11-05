@@ -83,6 +83,18 @@ local function split_path(path)
   return string.match(path, "(.-)([^\\/]-%.?([^%.\\/]*))$")
 end
 
+function file_exists(path)
+  local testIsFileCommand = "test -s '"..path.."'"
+  local testIsNotFileCommand = "test ! -s '"..path.."'"
+  
+  local positiveTest = os.execute(testIsFileCommand)
+  local negativeTest = os.execute(testIsNotFileCommand)
+  
+  assert(positiveTest ~= negativeTest)
+  
+  return (positiveTest ~= nil)
+end
+
 local function on_same_volume(absPathA, absPathB)
   local mountedVolumePattern = "^"..mount_root.."/(.-)/"
   
@@ -201,15 +213,9 @@ function import_transaction.transfer_media(self)
   
   local makeDirCommand = "mkdir -p '"..destDir.."'"
   
-  local testIsFileCommand = "test -s '"..self.destPath.."'"
-  local testIsNotFileCommand = "test ! -s '"..self.destPath.."'"
-  
-  local fileExists = os.execute(testIsFileCommand)
-  local fileNotExists = os.execute(testIsNotFileCommand)
+  self.destFileExists = file_exists(self.destPath)
 
-  assert(fileExists ~= fileNotExists)
-  
-  if (fileExists == nil) then    
+  if (self.destFileExists == false) then    
     if _copy_import_dry_run then
       print (makeDirCommand)
     else
