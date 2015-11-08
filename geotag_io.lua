@@ -2,6 +2,7 @@ dt = require "darktable"
 table = require "table"
 
 local _debug = false
+local exiftool_path = "/usr/local/bin/exiftool"
 
 local nil_geo_tag = dt.tags.create("darktable|geo|nil")
 
@@ -9,7 +10,7 @@ local function getImagePath(i) return "'"..i.path.."/"..i.filename.."'" end
 
 local function read_geotags(image)
   local tags = {}
-  local exifReadProcess = io.popen("exiftool -n "..getImagePath(image))
+  local exifReadProcess = io.popen(exiftool_path.." -n "..getImagePath(image))
   local exifLine = exifReadProcess:read()
   while exifLine do
     if (exifLine ~= '') then
@@ -65,7 +66,7 @@ local function _write_geotag()
   local image_done_count = 0
   
   for _,image in pairs(images_to_write) do
-    local exifCommand = "exiftool"
+    local exifCommand = exiftool_path
     if (dt.preferences.read("geotag_io","DeleteOriginal","bool")) then
       exifCommand = exifCommand.." -overwrite_original"
     end
