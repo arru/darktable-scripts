@@ -15,6 +15,7 @@ Copy+import: import ordinary DCF flash memories
 
 ### Requirements
 * [Exiftool](http://www.sno.phy.queensu.ca/~phil/exiftool/)
+* For video _conversion:_ ffmpeg with libfaac
 * Built and tested for Darktable 1.6
 
 ### Usage
