@@ -84,8 +84,8 @@ local function split_path(path)
 end
 
 function file_exists(path)
-  local testIsFileCommand = "test -s '"..path.."'"
-  local testIsNotFileCommand = "test ! -s '"..path.."'"
+  local testIsFileCommand = "test -s "..path
+  local testIsNotFileCommand = "test ! -s "..path
   
   local positiveTest = os.execute(testIsFileCommand)
   local negativeTest = os.execute(testIsNotFileCommand)
@@ -213,7 +213,7 @@ function import_transaction.transfer_media(self)
   
   local makeDirCommand = "mkdir -p '"..destDir.."'"
   
-  self.destFileExists = file_exists(self.destPath)
+  self.destFileExists = file_exists("'"..self.destPath.."'")
 
   if (self.destFileExists == false) then    
     if _copy_import_dry_run then
@@ -261,7 +261,7 @@ function import_transaction.transfer_media(self)
     destDir = nil
   end
   
-  self.destFileExists = file_exists(self.destPath)
+  self.destFileExists = file_exists("'"..self.destPath.."'")
   assert(self.destFileExists == true)
   
   return destDir
