@@ -6,6 +6,7 @@ local _debug = true
 local hugin_install_path = "/Applications/Hugin/Hugin.app/Contents/MacOS/"
 local panorama_source_tag = dt.tags.create("panorama-material")
 local mini_threshold = 3
+local points_tool_pano = "cpfind --celeste"
 
 local function debug_print(message)
   if _debug then
@@ -28,16 +29,18 @@ local function create_pto()
   end
   
   if num_images > 1 then
-    local pto_path = dt.preferences.read("panotools","PTOOutputDirectory","directory")
-    pto_path = pto_path.."/"..first_image.filename
+    local pto_final_path = dt.preferences.read("panotools","PTOOutputDirectory","directory")
+    local pto_name = first_image.filename
     if num_images <= mini_threshold then
-      pto_path = pto_path.."_M"
+      pto_name = pto_name.." M"
     else
-      pto_path = pto_path.."_P"
+      pto_name = pto_name.." P"
     end
-    pto_path = pto_path..".pto"
     
-    local ptogen_command = hugin_install_path.."pto_gen".." -o '"..pto_path.."'"
+    pto_temp_path = "/tmp/"..pto_name..".pto"
+    pto_final_path = pto_final_path.."/"..pto_name..".pto"
+    
+    local ptogen_command = hugin_install_path.."pto_gen".." -o '"..pto_temp_path.."'"
     
     local previous_image = nil
     for _,image in pairs(image_table) do
@@ -52,9 +55,13 @@ local function create_pto()
     
     local create_success = os.execute(ptogen_command)
     assert(create_success == true)
+    
+    local points_command = hugin_install_path..points_tool_pano.." -o '"..pto_final_path.."' '"..pto_temp_path.."'"
+    --debug_print(points_command)
+    coroutine.yield("RUN_COMMAND", points_command)
 
     local reveal_command = "open -R "
-    reveal_command = reveal_command..pto_path
+    reveal_command = reveal_command..pto_final_path
     coroutine.yield("RUN_COMMAND", reveal_command)
   else
     dt.print("Please select at least 2 images to create panorama project")
