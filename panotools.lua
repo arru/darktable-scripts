@@ -60,9 +60,9 @@ local function create_pto()
     --debug_print(points_command)
     coroutine.yield("RUN_COMMAND", points_command)
 
-    local reveal_command = "open -R "
-    reveal_command = reveal_command..pto_final_path
-    coroutine.yield("RUN_COMMAND", reveal_command)
+    local hugin_command = hugin_install_path.."hugin "
+    hugin_command = hugin_command.." '"..pto_final_path.."'"
+    coroutine.yield("RUN_COMMAND", hugin_command)
   else
     dt.print("Please select at least 2 images to create panorama project")
   end
