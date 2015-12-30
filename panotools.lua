@@ -1,7 +1,7 @@
 dt = require "darktable"
 table = require "table"
 
-local _debug = true
+local _debug = false
 
 local hugin_install_path = "/Applications/Hugin/Hugin.app/Contents/MacOS/"
 local panorama_source_tag = dt.tags.create("darktable|stack|panorama")
