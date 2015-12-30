@@ -16,7 +16,7 @@ end
 
 local function getImagePath(i) return "'"..i.path.."/"..i.filename.."'" end
 
-local function create_pto()
+local function _create_pto()
   local image_table = dt.gui.selection()
   
   local num_images = 0
@@ -68,5 +68,21 @@ local function create_pto()
   end
 end
 
-dt.register_event("shortcut",create_pto, "Create new Hugin (.pto) project from selected images")
+function create_pto_handler()
+  if (_debug) then
+    --Do a regular call, which will output complete error traceback to console
+    _create_pto()
+  else
+    
+    local main_success, main_error = pcall(_create_pto)
+    if (not main_success) then
+      local error_message = "An error prevented create .pto script from completing"
+      --Do two print calls, in case tostring conversion fails, user will still see a message
+      dt.print(error_message)
+      dt.print(error_message..": "..tostring(main_error))
+    end
+  end
+end
+
+dt.register_event("shortcut", create_pto_handler, "Create new Hugin (.pto) project from selected images")
 dt.preferences.register("panotools", "PTOOutputDirectory", "directory", "Panotools: where to put created .pto projects", "", "~/" )
