@@ -89,3 +89,18 @@ The script uses the Mac OSX-specific `open` command to reveal the image files fo
 Put in darktable/lua folder inside darktable's configuration. Add `require "autogroup"` to luarc file. Relaunch Darktable and locate the new command in Darktable's keyboard shortcut preferences. Set a shortcut you'd like.
 
 Press shortcut and watch Finder windows appear, containing the selected images. If an image is missing, its parent folder will open along with an error message in Darktable.
+
+Panotools: interface with Panotools and Hugin
+====================================================
+### What it does
+The script provides three commands for creating HDR/panorama project files (.pto) that open in Hugin for further processing
+
+### Usage
+Put in darktable/lua folder inside darktable's configuration. Add `require "panotools"` to luarc file. Relaunch Darktable and locate the new commands in Darktable's keyboard shortcut preferences. Set shortcuts you'd like.
+
+Press chosen shortcut depending on whether your image selection is an HDR stack, or panoramic tiles taken with either a regular (rectilinear) or full-frame fisheye lens. The following will then happen:
+1. source images will be grouped, and tagged as stack images (`darktable|stack|panorama`/`hdr`)
+1. a .pto file will be created containing all the images
+1. control points will be created in the project to match the image positions
+1. the resulting file will be revealed in the Finder
+1. and then opened in Hugin
