@@ -68,6 +68,8 @@ local function _create_pto(mode)
     pto_final_path = pto_final_path.."/"..pto_name..".pto"
     
     local create_command = hugin_install_path.."pto_gen".." -o '"..pto_temp_path.."'"
+
+    dt.print(".pto file creation has begun. Hugin will open when alignment is done.")
     
     _create_project(image_table, create_command, panorama_source_tag)
 
