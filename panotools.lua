@@ -6,7 +6,7 @@ local _debug = true
 local hugin_install_path = "/Applications/Hugin/Hugin.app/Contents/MacOS/"
 local panorama_source_tag = dt.tags.create("panorama-material")
 local mini_threshold = 3
-local points_tool_pano = "cpfind --celeste"
+local points_tool_pano = "cpfind --multirow --celeste"
 
 local function debug_print(message)
   if _debug then
