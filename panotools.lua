@@ -57,15 +57,18 @@ local function _create_pto(mode)
   if num_images > 1 then
     local pto_final_path = dt.preferences.read("panotools","PTOOutputDirectory","directory")
     
-    local pto_name = first_image.filename.." "
+    local pto_name = first_image.filename
     local tag = nil
-    if mode == 'P' and num_images <= mini_threshold then
-      pto_name = pto_name.."M"
+    local name_suffix = mode
+    if mode == 'P' then
+      if num_images <= mini_threshold then
+        name_suffix = "M"
+      end
       tag = panorama_source_tag
     else
-      pto_name = pto_name..mode
       tag = hdr_source_tag
     end
+    pto_name = pto_name.." "..name_suffix
     
     pto_temp_path = "/tmp/"..pto_name..".pto"
     pto_final_path = pto_final_path.."/"..pto_name..".pto"
