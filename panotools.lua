@@ -60,7 +60,7 @@ local function _create_pto(mode)
     local pto_name = first_image.filename
     local tag = nil
     local name_suffix = mode
-    if mode == 'P' then
+    if mode == 'P' or mode == '3' then
       if num_images <= mini_threshold then
         name_suffix = "M"
       end
@@ -75,18 +75,26 @@ local function _create_pto(mode)
     
     local create_command = hugin_install_path
     
-    if mode == 'P' then
-      create_command = create_command.."pto_gen".." -o '"..pto_temp_path.."'"
-    else
-      assert(mode == 'H')
+    if mode == 'H' then
       create_command = create_command.."align_image_stack -p '"..pto_final_path.."'"
+    else
+      create_command = create_command.."pto_gen -p "
+      if mode == '3' then
+        --projection type 3: full-frame fisheye
+        create_command = create_command.."3"
+      else
+        assert(mode == 'P')
+        --projection type 0: rectilinear
+        create_command = create_command.."0"
+      end
+      create_command = create_command.." -o '"..pto_temp_path.."'"
     end
 
     dt.print(".pto file creation has begun. Hugin will open when alignment is done.")
     
     _create_project(image_table, create_command, tag)
 
-    if mode == 'P' then
+    if mode == 'P' or mode == '3' then
       local points_command = hugin_install_path.."cpfind --multirow --celeste -o '"..pto_final_path.."' '"..pto_temp_path.."'"
       coroutine.yield("RUN_COMMAND", points_command)
     end
@@ -129,6 +137,23 @@ function create_panorama_handler()
   end
 end
 
-dt.register_event("shortcut", create_panorama_handler, "Create new panorama (Hugin .pto) project from selected images")
-dt.register_event("shortcut", create_hdr_handler, "Create new HDR (Hugin .pto) project from selected images")
+function create_fisheye_pano_handler()
+  if (_debug) then
+    --Do a regular call, which will output complete error traceback to console
+    _create_pto('3')
+  else
+    
+    local main_success, main_error = pcall(_create_pto,'3')
+    if (not main_success) then
+      local error_message = "An error prevented create .pto script from completing"
+      --Do two print calls, in case tostring conversion fails, user will still see a message
+      dt.print(error_message)
+      dt.print(error_message..": "..tostring(main_error))
+    end
+  end
+end
+
+dt.register_event("shortcut", create_panorama_handler, "Create panorama (Hugin .pto) project from rectilinear images")
+dt.register_event("shortcut", create_fisheye_pano_handler, "Create panorama (Hugin .pto) project from full-frame fisheye images")
+dt.register_event("shortcut", create_hdr_handler, "Create HDR (Hugin .pto) project from selected images")
 dt.preferences.register("panotools", "PTOOutputDirectory", "directory", "Panotools: where to put created .pto projects", "", "~/" )
