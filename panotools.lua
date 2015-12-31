@@ -16,22 +16,6 @@ end
 
 local function getImagePath(i) return "'"..i.path.."/"..i.filename.."'" end
 
-local function _create_project(image_table, create_command, tag)
-  local previous_image = nil
-  for _,image in pairs(image_table) do
-    create_command = create_command.." "..getImagePath(image)
-    dt.tags.attach(tag, image)
-    
-    if previous_image ~= nil then
-      image.group_with(image, previous_image)
-    end
-    previous_image = image
-  end
-
-  local create_success = os.execute(create_command)
-  assert(create_success == true)
-end
-
 local function _post_create_actions(output_path)
   local reveal_command = "open -R "
   reveal_command = reveal_command.." '"..output_path.."'"
@@ -90,9 +74,20 @@ local function _create_pto(mode)
       create_command = create_command.." -o '"..pto_temp_path.."'"
     end
 
+    local previous_image = nil
+    for _,image in pairs(image_table) do
+      create_command = create_command.." "..getImagePath(image)
+      dt.tags.attach(tag, image)
+      
+      if previous_image ~= nil then
+        image.group_with(image, previous_image)
+      end
+      previous_image = image
+    end
     dt.print(".pto file creation has begun. Hugin will open when alignment is done.")
     
-    _create_project(image_table, create_command, tag)
+    local create_success = os.execute(create_command)
+    assert(create_success == true)
 
     if mode == 'P' or mode == '3' then
       local points_command = hugin_install_path.."cpfind --multirow --celeste -o '"..pto_final_path.."' '"..pto_temp_path.."'"
