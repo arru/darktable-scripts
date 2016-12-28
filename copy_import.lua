@@ -21,6 +21,7 @@ local supported_image_formats_init = {"3FR", "ARW", "BAY", "BMQ", "CAP", "CINE",
 "JPEG", "JPG", "K25", "KC2", "KDC", "MDC", "MEF", "MOS", "MRW", "NEF", "NRW",
 "ORF", "PEF", "PFM", "PNG", "PXN", "QTK", "RAF", "RAW", "RDC", "RW1", "RW2",
 "SR2", "SRF", "SRW", "STI", "TIF", "TIFF", "X3F"}
+for k,v in pairs({"JP2", "J2K", "JPF", "JPX", "JPM", "MJ2"}) do supported_image_formats_init[k] = v end
 
 local copied_video_formats_init = {"MP4", "M4V", "AVI", "MOV", "3GP"}
 local converted_video_formats_init = {"MTS"}
