@@ -220,7 +220,8 @@ function import_transaction.transfer_media(self)
     if _copy_import_dry_run then
       print (makeDirCommand)
     else
-      coroutine.yield("RUN_COMMAND", makeDirCommand)
+      local makeDirSuccess = os.execute(makeDirCommand)
+      assert(makeDirSuccess == true)
     end
     
     if self.type == 'raw_video' then
@@ -240,7 +241,8 @@ function import_transaction.transfer_media(self)
       if _copy_import_dry_run then
         print (touchCommand)
       else
-        coroutine.yield("RUN_COMMAND", touchCommand)
+        local touchSuccess = os.execute(touchCommand)
+        assert(touchSuccess == true)
       end
     else
       assert (self.type == 'image' or self.type == 'video')
@@ -255,7 +257,8 @@ function import_transaction.transfer_media(self)
       if _copy_import_dry_run == true then
         print (copyCommand)
       else
-        coroutine.yield("RUN_COMMAND", copyMoveCommand)
+        local copyMoveSuccess = os.execute(copyMoveCommand)
+        assert(copyMoveSuccess == true)
       end
     end
   else
@@ -379,9 +382,9 @@ local function _copy_import_main()
     local testAltDirExists = "test -d '"..dir.."'"
     local altDirExists = os.execute(testAltDirExists)
     if (altDirExists == true) then
-      local ensureInboxExistsCommand = "mkdir -p '"..dir.."/"..alternate_inbox_name.."'"
-      coroutine.yield("RUN_COMMAND", ensureInboxExistsCommand)
-      
+      local ensureInboxExistsSuccess = os.execute("mkdir -p '"..dir.."/"..alternate_inbox_name.."'")
+      assert(ensureInboxExistsSuccess == true)
+
       --Note: without any wildcard * in path, ls will list filenames only, wihout full path
       stats['numFilesFound'] = stats['numFilesFound'] +
         scrape_files(escape_path(dir).."/"..escape_path(alternate_inbox_name).."/*", dir, dirStructure.."/${name}", transactions)

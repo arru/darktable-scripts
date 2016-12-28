@@ -66,25 +66,24 @@ local function _write_geotag()
   local image_done_count = 0
   
   for _,image in pairs(images_to_write) do
-    local exifCommand = exiftool_path
+    local writeExifCommand = exiftool_path
     if (dt.preferences.read("geotag_io","DeleteOriginal","bool")) then
-      exifCommand = exifCommand.." -overwrite_original"
+      writeExifCommand = writeExifCommand.." -overwrite_original"
     end
     if (dt.preferences.read("geotag_io","KeepFileDate","bool")) then
-      exifCommand = exifCommand.." -preserve"
+      writeExifCommand = writeExifCommand.." -preserve"
     end
     
     local imagePath = getImagePath(image)
     
-    exifCommand = exifCommand.." -exif:GPSLatitude="..image.latitude.." -exif:GPSLatitudeRef="..image.latitude.." -exif:GPSLongitude="..image.longitude.." -exif:GPSLongitudeRef="..image.longitude.." -exif:GPSAltitude= -exif:GPSAltitudeRef= -exif:GPSHPositioningError= "..imagePath
+    local testIsFileSuccess = os.execute("test -f "..imagePath)
+    assert(testIsFileSuccess == true)
     
-    local testIsFileCommand = "test -f "..imagePath
+    writeExifCommand = writeExifCommand.." -exif:GPSLatitude="..image.latitude.." -exif:GPSLatitudeRef="..image.latitude.." -exif:GPSLongitude="..image.longitude.." -exif:GPSLongitudeRef="..image.longitude.." -exif:GPSAltitude= -exif:GPSAltitudeRef= -exif:GPSHPositioningError= "..imagePath
     
-    --Will fail and exit if image file does not exist (or path is invalid)
-    coroutine.yield("RUN_COMMAND", testIsFileCommand)
-    
-    coroutine.yield("RUN_COMMAND", exifCommand)
-        
+    local writeExifSuccess = os.execute(writeExifCommand)
+    assert(writeExifSuccess == true)
+            
     image_done_count = image_done_count + 1
     save_job.percent = (image_done_count/image_table_count)*(1-precheck_fraction) + precheck_fraction
   end

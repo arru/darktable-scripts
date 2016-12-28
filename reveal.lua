@@ -38,13 +38,13 @@ local function reveal()
     end
   end
   
-  if (missing_image == nil) then
-    coroutine.yield("RUN_COMMAND", command_string)
-  else
+  if (missing_image ~= nil) then    
     --Show message and reveal parent folder (if available)
     dt.print("Could not find "..get_image_path(missing_image)..", it might be offline or missing.")
-    coroutine.yield("RUN_COMMAND", "open '"..missing_image.path.."'")
+    command_string = "open '"..missing_image.path.."'"
   end
+  
+  os.execute(command_string)
 end
 
 dt.register_event("shortcut",reveal, "Reveal selected image(s) in Finder")
