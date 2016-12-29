@@ -19,11 +19,11 @@ local function getImagePath(i) return "'"..i.path.."/"..i.filename.."'" end
 local function _post_create_actions(output_path)
   local reveal_command = "open -R "
   reveal_command = reveal_command.." '"..output_path.."'"
-  coroutine.yield("RUN_COMMAND", reveal_command)
+  os.execute(reveal_command)
 
   local hugin_command = hugin_install_path.."hugin "
   hugin_command = hugin_command.." '"..output_path.."' &"
-  coroutine.yield("RUN_COMMAND", hugin_command)
+  os.execute(hugin_command)
 end
 
 local function _create_pto(mode)
@@ -90,8 +90,11 @@ local function _create_pto(mode)
     assert(create_success == true)
 
     if mode == 'P' or mode == '3' then
-      local points_command = hugin_install_path.."cpfind --multirow --celeste -o '"..pto_final_path.."' '"..pto_temp_path.."'"
-      coroutine.yield("RUN_COMMAND", points_command)
+      local findPointsCommand = hugin_install_path.."cpfind --multirow --celeste -o '"..pto_final_path.."' '"..pto_temp_path.."'"
+      --debug_print(findPointsCommand)
+      
+      local findPointsSuccess = os.execute(findPointsCommand)
+      assert(findPointsSuccess == true)
     end
 
     _post_create_actions(pto_final_path)
