@@ -7,6 +7,7 @@ local hugin_install_path = "/Applications/Hugin/Hugin.app/Contents/MacOS/"
 local panorama_source_tag = dt.tags.create("darktable|stack|panorama")
 local hdr_source_tag = dt.tags.create("darktable|stack|hdr")
 local mini_threshold = 3
+local pcall_error_message = "An error prevented create .pto script from completing"
 
 local function debug_print(message)
   if _debug then
@@ -111,10 +112,9 @@ function create_hdr_handler()
     
     local main_success, main_error = pcall(_create_pto,'H')
     if (not main_success) then
-      local error_message = "An error prevented create .pto script from completing"
       --Do two print calls, in case tostring conversion fails, user will still see a message
-      dt.print(error_message)
-      dt.print(error_message..": "..tostring(main_error))
+      dt.print(pcall_error_message)
+      dt.print(pcall_error_message..": "..tostring(main_error))
     end
   end
 end
@@ -127,10 +127,9 @@ function create_panorama_handler()
     
     local main_success, main_error = pcall(_create_pto,'P')
     if (not main_success) then
-      local error_message = "An error prevented create .pto script from completing"
       --Do two print calls, in case tostring conversion fails, user will still see a message
-      dt.print(error_message)
-      dt.print(error_message..": "..tostring(main_error))
+      dt.print(pcall_error_message)
+      dt.print(pcall_error_message..": "..tostring(main_error))
     end
   end
 end
@@ -143,10 +142,9 @@ function create_fisheye_pano_handler()
     
     local main_success, main_error = pcall(_create_pto,'3')
     if (not main_success) then
-      local error_message = "An error prevented create .pto script from completing"
       --Do two print calls, in case tostring conversion fails, user will still see a message
-      dt.print(error_message)
-      dt.print(error_message..": "..tostring(main_error))
+      dt.print(pcall_error_message)
+      dt.print(pcall_error_message..": "..tostring(main_error))
     end
   end
 end
