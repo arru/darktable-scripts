@@ -63,7 +63,7 @@ local function _create_pto(mode)
     if mode == 'H' then
       create_command = create_command.."align_image_stack -p '"..pto_final_path.."'"
     else
-      create_command = create_command.."pto_gen -p "
+      create_command = create_command.."pto_gen --distortion --vignetting -p "
       if mode == '3' then
         --projection type 3: full-frame fisheye
         create_command = create_command.."3"
