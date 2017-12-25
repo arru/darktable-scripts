@@ -10,7 +10,7 @@ local ffmpeg_available = false
 -------- Constants --------
 
 local exif_date_pattern = "^(%d+):(%d+):(%d+) (%d+):(%d+):(%d+)"
-local audioF = "libfaac"
+local audioF = "aac"
 local audioQ = "192k"
 local videoContainer = "m4v"
 local avchdPattern = "AVCHD-${year}${month}${day}-${hour}${minute}${name}."..videoContainer
