@@ -16,9 +16,9 @@ local function _get_image_time (image)
   local xyear, xmonth, xday, xhour, xminute, xseconds = datestring:match(pattern)
   
   --Bad 0000:00:00 00:00:00 date workaround
-  xyear = math.max (xyear, 1970)
-  xmonth = math.max (xmonth, 1)
-  xday = math.max (xday, 1)
+  xyear = math.max (tonumber(xyear), 1970)
+  xmonth = math.max (tonumber(xmonth), 1)
+  xday = math.max (tonumber(xday), 1)
   
   local time = os.time({year = xyear, month = xmonth, day = xday,
   hour = xhour, min = xminute, sec = xseconds})
