@@ -17,6 +17,7 @@ Copy+import: import ordinary DCF flash memories
 * [Exiftool](http://www.sno.phy.queensu.ca/~phil/exiftool/)
 * For video _conversion:_ ffmpeg with libfaac
 * Built and tested for Darktable 1.6
+* For Flickr: Python 2.7 and flickrapi (`pypi install flickrapi`)
 
 ### Usage
 Put in darktable/lua folder inside darktable's configuration. Add `require "copy_import"` to luarc file. Relaunch Darktable and locate the new command in Darktable's keyboard shortcut preferences. Set a shortcut you'd like (ctrl-I is a good choice) and you're good to go.
@@ -104,3 +105,7 @@ Press chosen shortcut depending on whether your image selection is an HDR stack,
 1. control points will be created in the project to match the image positions
 1. the resulting file will be revealed in the Finder
 1. and then opened in Hugin
+
+Flickr: reliably upload photos to Flickr
+==================================================
+Put in darktable/lua folder inside darktable's configuration. Add `require "flickr"` to luarc file. Relaunch Darktable, _Flickr script_ will now be available as a new export options.
