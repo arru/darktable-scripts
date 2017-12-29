@@ -4,7 +4,13 @@ local _debug = false
 
 local exported_flickr_tag = dt.tags.create("darktable|exported|flickr")
 local internal_tag_prefix = "darktable|"
-local python_uploader_stem = "python ~/.config/darktable/lua/flickr_upload.py "
+
+local function split_path(path)
+    return string.match(path, "(.-)([^\\/]-%.?([^%.\\/]*))$")
+end
+
+local scripts_dir, _, _ = split_path(debug.getinfo(1).source:match("@(.*)$"))
+local python_uploader_stem = "python "..scripts_dir.."flickr_upload.py "
 
 local function _flickr_storage_main(storage, image_table, extra_data)
     for image, export_file_path in pairs(image_table) do
