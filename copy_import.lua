@@ -434,9 +434,6 @@ local function _copy_import_main()
   
   --Build completion user message and display it
   if (stats['numFilesFound'] > 0) then
-    assert(stats ['numFilesFound'] == stats['numFilesProcessed'] + stats['numFilesDuplicate'] + stats['numUnsupportedFound'])
-    assert(stats['numUnsupportedFound'] == stats['numFilesFound'] - stats['numImagesFound'] - stats['numVideosFound'])
-    
     local completionMessage = ""
     if (stats['numImagesFound'] > 0) then
       completionMessage = stats['numImagesFound'].." images"
@@ -456,6 +453,9 @@ local function _copy_import_main()
   else
     dt.print("No files found. Is your memory card not mounted, or empty?")
   end
+
+  assert(stats ['numFilesFound'] == stats['numFilesProcessed'] + stats['numFilesDuplicate'] + stats['numUnsupportedFound'])
+  assert(stats['numUnsupportedFound'] == stats['numFilesFound'] - stats['numImagesFound'] - stats['numVideosFound'])
 end
 
 -------- Error handling wrapper --------
