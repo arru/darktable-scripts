@@ -273,7 +273,7 @@ end
 
 -------- Subroutines --------
 
-local function scrape_files(scrapePattern, destRoot, structure, list)
+local function scrape_files(scrapePattern, destRoot, structure, list, stats)
   local numFilesFound = 0
   debug_print ("Scraping "..scrapePattern.." to "..destRoot)
 
@@ -285,7 +285,7 @@ local function scrape_files(scrapePattern, destRoot, structure, list)
     numFilesFound = numFilesFound + 1
   end
   
-  return numFilesFound
+  stats['numFilesFound'] = stats['numFilesFound'] + numFilesFound
 end
 
 -------- Main function --------
@@ -358,15 +358,13 @@ local function _copy_import_main()
   end
   
   if destMounted == true and (not _copy_import_video_enabled or videoDestMounted) then
-    scrape_files(escape_path(mount_root)..dcimPath, dcimDestRoot, _copy_import_default_folder_structure.."/${name}.${extension}", transactions)
+    scrape_files(escape_path(mount_root)..dcimPath, dcimDestRoot, _copy_import_default_folder_structure.."/${name}.${extension}", transactions, stats)
     
     if _copy_import_video_enabled == true then 
       if video_separate_dest == true then
-          stats['numFilesFound'] = stats['numFilesFound'] +
-            scrape_files(escape_path(mount_root)..avchd_stream_path, videoDestRoot, video_folder_structure.."/"..avchdPattern, transactions)
+        scrape_files(escape_path(mount_root)..avchd_stream_path, videoDestRoot, video_folder_structure.."/"..avchdPattern, transactions, stats)
       else
-        stats['numFilesFound'] = stats['numFilesFound'] +
-          scrape_files(escape_path(mount_root)..avchd_stream_path, dcimDestRoot, _copy_import_default_folder_structure.."/"..avchdPattern, transactions)
+          scrape_files(escape_path(mount_root)..avchd_stream_path, dcimDestRoot, _copy_import_default_folder_structure.."/"..avchdPattern, transactions, stats)
       end
     end
   else
@@ -385,7 +383,7 @@ local function _copy_import_main()
       assert(ensureInboxExistsSuccess == true)
 
       --Note: without any wildcard * in path, ls will list filenames only, wihout full path
-        scrape_files(escape_path(dir).."/"..escape_path(alternate_inbox_name).."/*", dir, dirStructure.."/${name}.${extension}", transactions)
+        scrape_files(escape_path(dir).."/"..escape_path(alternate_inbox_name).."/*", dir, dirStructure.."/${name}.${extension}", transactions, stats)
     else
       dt.print(dir.." could not be found and was skipped over.")
     end
