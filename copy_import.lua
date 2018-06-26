@@ -81,7 +81,7 @@ local function escape_path(path)
 end
 
 local function split_path(path)
-  return string.match(path, "(.-)([^\\/]-%.?([^%.\\/]*))$")
+  return string.match(path, "(.-)([^\\/]-)%.?([^%.\\/]*)$")
 end
 
 function file_exists(path)
@@ -199,7 +199,7 @@ function import_transaction.load(self)
     for k,v in pairs(self.date) do
       subst[k] = v
     end
-    subst['name'] = name
+    _, subst['name'], subst['extension'] = split_path(self.srcPath)
     
     self.destPath = interp(self.destRoot.."/"..dirStructure, subst)
   end
@@ -358,8 +358,7 @@ local function _copy_import_main()
   end
   
   if destMounted == true and (not _copy_import_video_enabled or videoDestMounted) then
-    stats['numFilesFound'] = stats['numFilesFound'] +
-      scrape_files(escape_path(mount_root)..dcimPath, dcimDestRoot, _copy_import_default_folder_structure.."/${name}", transactions)
+    scrape_files(escape_path(mount_root)..dcimPath, dcimDestRoot, _copy_import_default_folder_structure.."/${name}.${extension}", transactions)
     
     if _copy_import_video_enabled == true then 
       if video_separate_dest == true then
@@ -386,8 +385,7 @@ local function _copy_import_main()
       assert(ensureInboxExistsSuccess == true)
 
       --Note: without any wildcard * in path, ls will list filenames only, wihout full path
-      stats['numFilesFound'] = stats['numFilesFound'] +
-        scrape_files(escape_path(dir).."/"..escape_path(alternate_inbox_name).."/*", dir, dirStructure.."/${name}", transactions)
+        scrape_files(escape_path(dir).."/"..escape_path(alternate_inbox_name).."/*", dir, dirStructure.."/${name}.${extension}", transactions)
     else
       dt.print(dir.." could not be found and was skipped over.")
     end
