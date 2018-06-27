@@ -291,7 +291,7 @@ function import_transaction.transfer_media(self, stats)
     
     stats['numFilesProcessed'] = stats['numFilesProcessed'] + 1
   else
-    stats['numFilesDuplicate'] = stats['numFilesDuplicate'] + 1
+    stats['numMastersDuplicate'] = stats['numMastersDuplicate'] + 1
   end
   
   self.destFileExists = file_exists("'"..self.destPath.."'")
@@ -368,10 +368,10 @@ local function _copy_import_main()
   
   stats['numImagesFound'] = 0
   stats['numVideosFound'] = 0
-  stats['numFilesDuplicate'] = 0
+  stats['numMastersDuplicate'] = 0
   stats['numFilesFound'] = 0
   stats['numFilesProcessed'] = 0
-  stats['numFilesScanned'] = 0
+  stats['loadProgress'] = 0
   stats['numUnsupportedFound'] = 0
   stats['numSidecarsFound'] = 0
   
@@ -471,8 +471,8 @@ local function _copy_import_main()
   for _,tr in pairs(transactions) do
     tr:load()
     
-    stats['numFilesScanned'] = stats['numFilesScanned'] + 1
-    copy_progress_job.percent = (stats['numFilesScanned']*0.5) / stats['numFilesFound']
+    stats['loadProgress'] = stats['loadProgress'] + 1
+    copy_progress_job.percent = (stats['loadProgress']*0.5) / stats['numFilesFound']
   end
   
   for _,tr in pairs(transactions) do
@@ -487,7 +487,7 @@ local function _copy_import_main()
         changedDirs[destDir] = true
       end
     end
-    copy_progress_job.percent = 0.5 + ((stats['numFilesProcessed'] + stats['numFilesDuplicate'])*0.5) / stats['numFilesFound']
+    copy_progress_job.percent = 0.5 + ((stats['numFilesProcessed'] + stats['numMastersDuplicate'])*0.5) / stats['numFilesFound']
   end
   
   copy_progress_job.valid = false
@@ -508,8 +508,8 @@ local function _copy_import_main()
         completionMessage = completionMessage..", "..stats['numVideosFound'].." videos"
       end
       completionMessage = completionMessage.." imported."
-      if (stats['numFilesDuplicate'] > 0) then
-        completionMessage = completionMessage.." "..stats['numFilesDuplicate'].." duplicates were ignored."
+      if (stats['numMastersDuplicate'] > 0) then
+        completionMessage = completionMessage.." "..stats['numMastersDuplicate'].." duplicates were ignored."
       end
     end
     
@@ -522,7 +522,7 @@ local function _copy_import_main()
   end
 
   assert(stats['numFilesFound'] == stats['numImagesFound'] + stats['numVideosFound'] + stats['numSidecarsFound'] + stats['numUnsupportedFound'])
-  assert(stats['numFilesProcessed'] + stats['numFilesDuplicate'] == stats['numImagesFound'] + stats['numVideosFound'] + stats['numSidecarsFound'])
+  assert(stats['numFilesProcessed'] + stats['numMastersDuplicate'] == stats['numImagesFound'] + stats['numVideosFound'] + stats['numSidecarsFound'])
 end
 
 -------- Error handling wrapper --------
