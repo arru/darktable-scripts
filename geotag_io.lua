@@ -2,7 +2,14 @@ dt = require "darktable"
 table = require "table"
 
 local _debug = false
+local _geotag_io_dry_run = false
 local exiftool_path = "/usr/local/bin/exiftool"
+
+local function debug_print(message)
+  if _debug then
+    print(message)
+  end
+end
 
 local nil_geo_tag = dt.tags.create("darktable|geo|nil")
 
@@ -81,9 +88,13 @@ local function _write_geotag()
     
     writeExifCommand = writeExifCommand.." -exif:GPSLatitude="..image.latitude.." -exif:GPSLatitudeRef="..image.latitude.." -exif:GPSLongitude="..image.longitude.." -exif:GPSLongitudeRef="..image.longitude.." -exif:GPSAltitude= -exif:GPSAltitudeRef= -exif:GPSHPositioningError= "..imagePath
     
-    local writeExifSuccess = os.execute(writeExifCommand)
-    assert(writeExifSuccess == true)
-            
+    if _geotag_io_dry_run == true then
+      debug_print (writeExifCommand)
+    else
+      local writeExifSuccess = os.execute(writeExifCommand)
+      assert(writeExifSuccess == true)
+    end
+    
     image_done_count = image_done_count + 1
     save_job.percent = (image_done_count/image_table_count)*(1-precheck_fraction) + precheck_fraction
   end
