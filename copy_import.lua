@@ -25,6 +25,7 @@ for k,v in pairs({"JP2", "J2K", "JPF", "JPX", "JPM", "MJ2"}) do supported_image_
 
 local copied_video_formats_init = {"MP4", "M4V", "AVI", "MOV", "3GP"}
 local converted_video_formats_init = {"MTS"}
+local sidecar_formats_init = {"AAE", "DTYLE", "EXF", "GPX", "JGW", "MIE", "SRT", "TFW", "THM", "TXT", "WAV", "XMP"}
 
 -------- Configuration --------
 
@@ -55,6 +56,11 @@ end
 local converted_video_formats = {}
 for index,ext in pairs(converted_video_formats_init) do
   converted_video_formats[ext] = true
+end
+
+local sidecar_formats = {}
+for index,ext in pairs(sidecar_formats_init) do
+  sidecar_formats[ext] = true
 end
 
 -------- Support functions --------
@@ -125,19 +131,29 @@ local import_transaction = {
   destPath = nil,
   date = nil,
   tags = nil,
+  sidecars = nil,
   destFileExists = nil
 }
 
 import_transaction.__index = import_transaction
 
-function import_transaction.new(path, destRoot)
+function import_transaction.new(path, destRoot, type)
   local self = setmetatable({}, import_transaction)
   self.srcPath = path
   self.destRoot = destRoot
+  self.type = type
+  self.sidecars = {}
   
   assert(self.srcPath ~= "")
   assert(self.destRoot ~= "")
+  assert(self.type ~= "")
   return self
+end
+
+function import_transaction.add_sidecar(self, sidecar_extension)
+  assert(sidecar_extension ~=nil)
+  
+  table.insert(self.sidecars, sidecar_extension)
 end
 
 function import_transaction.load(self)
@@ -145,19 +161,7 @@ function import_transaction.load(self)
   --'movie' or 'none' otherwise
   assert(self.srcPath ~=nil)
   assert(self.destRoot ~= nil)
-  local dir, name, ext = split_path(self.srcPath)
-  
-  
-  if (ext ~= nil and supported_image_formats[ext:upper()] == true) then
-    self.type = 'image'
-  elseif _copy_import_video_enabled == true then
-    if (ext ~= nil and converted_video_formats[ext:upper()] == true) then
-      assert(ffmpeg_available)
-      self.type = 'raw_video'
-    elseif (ext ~= nil and copied_video_formats[ext:upper()] == true) then
-      self.type = 'video'
-    end
-  end
+  assert(self.type ~= nil)
   
   if self.type ~= nil then
     self.tags = {}
@@ -205,18 +209,45 @@ function import_transaction.load(self)
   end
 end
 
-function import_transaction.transfer_media(self)
+function import_transaction.transfer_media(self, stats)
   assert (self.destPath ~= nil)
   assert (self.tags ~= nil)
   assert (self.date ~= nil)
   
-  local destDir,_,_ = split_path(self.destPath)
+  local destDir, _, _ = split_path(self.destPath)
   
   local makeDirCommand = "mkdir -p '"..destDir.."'"
   
   self.destFileExists = file_exists("'"..self.destPath.."'")
+  
+  local transfer_sidecars = function (can_move, stats)
+    local src_dir, filename, _ = split_path(self.srcPath)
+    
+    for _, sidecar_ext in pairs(self.sidecars) do
+      sidecar_src_path = src_dir..filename.."."..sidecar_ext
+      sidecar_dest_path = destDir..filename.."."..sidecar_ext
+      
+      local copyMoveCommand = "cp -n '"..sidecar_src_path.."' '"..sidecar_dest_path.."'"
+      if (can_move) then
+        copyMoveCommand = "mv -n '"..sidecar_src_path.."' '"..sidecar_dest_path.."'"
+      end
+      
+      if _copy_import_dry_run == true then
+        debug_print (copyMoveCommand)
+      else
+        local copyMoveSuccess = os.execute(copyMoveCommand)
+        assert(copyMoveSuccess == true)
+        assert(file_exists("'"..sidecar_dest_path.."'"))
+      end
+      
+      stats['numFilesProcessed'] = stats['numFilesProcessed'] + 1
+    end
+  end
+  
+  local can_move = self.type ~= 'raw_video' and on_same_volume(self.srcPath,self.destPath)
+  transfer_sidecars(can_move, stats)
 
-  if (self.destFileExists == false) then    
+  if (self.destFileExists == false) then
     if _copy_import_dry_run then
       debug_print (makeDirCommand)
     else
@@ -237,7 +268,7 @@ function import_transaction.transfer_media(self)
       --adjust file date attributes
       local datestring = self.date['year']..self.date['month']..self.date['day']..self.date['hour']..self.date['minute'].."."..self.date['seconds']
       local touchCommand = "touch -c -mt "..datestring.." '"..self.destPath.."'"
-      if _copy_import_dry_run then
+      if _copy_import_dry_run == true then
         print (touchCommand)
       else
         local touchSuccess = os.execute(touchCommand)
@@ -246,7 +277,7 @@ function import_transaction.transfer_media(self)
     else
       assert (self.type == 'image' or self.type == 'video')
       local copyMoveCommand = "cp -n '"..self.srcPath.."' '"..self.destPath.."'"
-      if (on_same_volume(self.srcPath,self.destPath)) then
+      if (can_move) then
         copyMoveCommand = "mv -n '"..self.srcPath.."' '"..self.destPath.."'"
       end
       
@@ -257,13 +288,15 @@ function import_transaction.transfer_media(self)
         assert(copyMoveSuccess == true)
       end
     end
+    
+    stats['numFilesProcessed'] = stats['numFilesProcessed'] + 1
   else
-    destDir = nil
+    stats['numFilesDuplicate'] = stats['numFilesDuplicate'] + 1
   end
   
   self.destFileExists = file_exists("'"..self.destPath.."'")
-  assert(self.destFileExists == true)
-  
+  assert(_copy_import_dry_run == true or self.destFileExists == true)
+    
   return destDir
 end
 
@@ -272,13 +305,57 @@ end
 local function scrape_files(scrapePattern, destRoot, structure, list, stats)
   local numFilesFound = 0
   debug_print ("Scraping "..scrapePattern.." to "..destRoot)
+  local master_files_found = {}
 
-  for imagePath in io.popen("ls "..scrapePattern):lines() do
-    local trans = import_transaction.new(imagePath, destRoot)
-    trans.destStructure = structure
+  for masterPath in io.popen("ls "..scrapePattern):lines() do
+    local dir, name, ext = split_path(masterPath)
     
-    table.insert(list, trans)
     numFilesFound = numFilesFound + 1
+
+    local type = nil
+
+    if (ext ~= nil and supported_image_formats[ext:upper()] == true) then
+      type = 'image'
+    elseif _copy_import_video_enabled == true then
+      if (ext ~= nil and converted_video_formats[ext:upper()] == true) then
+        assert(ffmpeg_available)
+        type = 'raw_video'
+      elseif (ext ~= nil and copied_video_formats[ext:upper()] == true) then
+        type = 'video'
+      end
+    end
+    
+    if (type ~= nil) then
+      local trans = import_transaction.new(masterPath, destRoot, type)
+      print (masterPath)
+      trans.destStructure = structure
+      
+      table.insert(list, trans)
+      master_files_found[dir..name] = trans
+    end
+  end
+  
+  for sidecarPath in io.popen("ls "..scrapePattern):lines() do
+    local dir, name, ext = split_path(sidecarPath)
+    local master_file = nil
+    local supported_format = false
+    
+    master_file = master_files_found[dir..name]
+    debug_print("Looking for "..dir..name)
+    if (master_file ~= nil and ext ~= nil) then
+      debug_print("Sidecar check "..dir..name.."."..ext)
+      if (sidecar_formats[ext:upper()] == true) then
+        master_file:add_sidecar(ext)
+        supported_format = true
+        stats['numSidecarsFound'] = stats['numSidecarsFound'] + 1
+      elseif (supported_image_formats[ext:upper()] == true or converted_video_formats[ext:upper()] == true or copied_video_formats[ext:upper()] == true) then
+        supported_format = true
+      end
+    end
+  
+    if (supported_format == false) then
+      stats['numUnsupportedFound'] = stats['numUnsupportedFound'] + 1
+    end
   end
   
   stats['numFilesFound'] = stats['numFilesFound'] + numFilesFound
@@ -296,6 +373,7 @@ local function _copy_import_main()
   stats['numFilesProcessed'] = 0
   stats['numFilesScanned'] = 0
   stats['numUnsupportedFound'] = 0
+  stats['numSidecarsFound'] = 0
   
   exiftool_path = dt.preferences.read("copy_import", "ExifToolPath", "file")
   ffmpeg_path = dt.preferences.read("copy_import", "FFMPEGPath", "file")
@@ -403,15 +481,10 @@ local function _copy_import_main()
         stats['numImagesFound'] = stats['numImagesFound'] + 1
       elseif tr.type == 'video' or tr.type == 'raw_video' then
         stats['numVideosFound'] = stats['numVideosFound'] + 1
-      else
-        stats['numUnsupportedFound'] = stats['numUnsupportedFound'] + 1
       end
-      local destDir = tr:transfer_media()
+      local destDir = tr:transfer_media(stats)
       if (destDir ~= nil) then
         changedDirs[destDir] = true
-        stats['numFilesProcessed'] = stats['numFilesProcessed'] + 1
-      else
-        stats['numFilesDuplicate'] = stats['numFilesDuplicate'] + 1
       end
     end
     copy_progress_job.percent = 0.5 + ((stats['numFilesProcessed'] + stats['numFilesDuplicate'])*0.5) / stats['numFilesFound']
@@ -419,9 +492,11 @@ local function _copy_import_main()
   
   copy_progress_job.valid = false
   
-  --Tell Darktable to import images
-  for dir,_ in pairs(changedDirs) do
-    dt.database.import(dir)
+  if (_copy_import_dry_run == false) then
+    --Tell Darktable to import images
+    for dir,_ in pairs(changedDirs) do
+      dt.database.import(dir)
+    end
   end
   
   --Build completion user message and display it
@@ -446,8 +521,8 @@ local function _copy_import_main()
     dt.print("No files found. Is your memory card not mounted, or empty?")
   end
 
-  assert(stats ['numFilesFound'] == stats['numFilesProcessed'] + stats['numFilesDuplicate'] + stats['numUnsupportedFound'])
-  assert(stats['numUnsupportedFound'] == stats['numFilesFound'] - stats['numImagesFound'] - stats['numVideosFound'])
+  assert(stats['numFilesFound'] == stats['numImagesFound'] + stats['numVideosFound'] + stats['numSidecarsFound'] + stats['numUnsupportedFound'])
+  assert(stats['numFilesProcessed'] + stats['numFilesDuplicate'] == stats['numImagesFound'] + stats['numVideosFound'] + stats['numSidecarsFound'])
 end
 
 -------- Error handling wrapper --------
