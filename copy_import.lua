@@ -218,7 +218,7 @@ function import_transaction.transfer_media(self)
 
   if (self.destFileExists == false) then    
     if _copy_import_dry_run then
-      print (makeDirCommand)
+      debug_print (makeDirCommand)
     else
       local makeDirSuccess = os.execute(makeDirCommand)
       assert(makeDirSuccess == true)
@@ -227,9 +227,8 @@ function import_transaction.transfer_media(self)
     if self.type == 'raw_video' then
       assert (self.date ~= nil)
       convertCommand = ffmpeg_path.." -i '"..self.srcPath.."' -acodec "..audioF.." -ab "..audioQ.." -vcodec copy '"..self.destPath.."'"
-      debug_print("Converting '"..self.srcPath.."' to '"..self.destPath.."'")
       if _copy_import_dry_run == true then
-        print (convertCommand)
+        debug_print (convertCommand)
       else
         local conversionSuccess = os.execute(convertCommand)
         assert(conversionSuccess == true)
@@ -249,13 +248,10 @@ function import_transaction.transfer_media(self)
       local copyMoveCommand = "cp -n '"..self.srcPath.."' '"..self.destPath.."'"
       if (on_same_volume(self.srcPath,self.destPath)) then
         copyMoveCommand = "mv -n '"..self.srcPath.."' '"..self.destPath.."'"
-        debug_print("Moving '"..self.srcPath.."' to '"..self.destPath.."'")
-      else
-        debug_print("Copying '"..self.srcPath.."' to '"..self.destPath.."'")
       end
       
       if _copy_import_dry_run == true then
-        print (copyCommand)
+        debug_print (copyMoveCommand)
       else
         local copyMoveSuccess = os.execute(copyMoveCommand)
         assert(copyMoveSuccess == true)
