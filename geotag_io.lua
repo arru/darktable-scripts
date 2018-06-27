@@ -11,6 +11,10 @@ local function debug_print(message)
   end
 end
 
+local function comma_to_dot(number)
+  return tostring(number):gsub(",", ".")
+end
+
 local nil_geo_tag = dt.tags.create("darktable|geo|nil")
 
 local function getImagePath(i) return "'"..i.path.."/"..i.filename.."'" end
@@ -86,7 +90,7 @@ local function _write_geotag()
     local testIsFileSuccess = os.execute("test -f "..imagePath)
     assert(testIsFileSuccess == true)
     
-    writeExifCommand = writeExifCommand.." -exif:GPSLatitude="..image.latitude.." -exif:GPSLatitudeRef="..image.latitude.." -exif:GPSLongitude="..image.longitude.." -exif:GPSLongitudeRef="..image.longitude.." -exif:GPSAltitude= -exif:GPSAltitudeRef= -exif:GPSHPositioningError= "..imagePath
+    writeExifCommand = writeExifCommand.." -exif:GPSLatitude="..comma_to_dot(image.latitude).." -exif:GPSLatitudeRef="..comma_to_dot(image.latitude).." -exif:GPSLongitude="..comma_to_dot(image.longitude).." -exif:GPSLongitudeRef="..comma_to_dot(image.longitude).." -exif:GPSAltitude= -exif:GPSAltitudeRef= -exif:GPSHPositioningError= "..imagePath
     
     if _geotag_io_dry_run == true then
       debug_print (writeExifCommand)
