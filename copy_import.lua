@@ -220,6 +220,15 @@ function import_transaction.transfer_media(self, stats)
   
   self.destFileExists = file_exists("'"..self.destPath.."'")
   
+  if (self.destFileExists == false) then
+    if _copy_import_dry_run then
+      debug_print (makeDirCommand)
+    else
+      local makeDirSuccess = os.execute(makeDirCommand)
+      assert(makeDirSuccess == true)
+    end
+  end
+  
   local transfer_sidecars = function (can_move, stats)
     local src_dir, filename, _ = split_path(self.srcPath)
     
@@ -248,13 +257,6 @@ function import_transaction.transfer_media(self, stats)
   transfer_sidecars(can_move, stats)
 
   if (self.destFileExists == false) then
-    if _copy_import_dry_run then
-      debug_print (makeDirCommand)
-    else
-      local makeDirSuccess = os.execute(makeDirCommand)
-      assert(makeDirSuccess == true)
-    end
-    
     if self.type == 'raw_video' then
       assert (self.date ~= nil)
       convertCommand = ffmpeg_path.." -i '"..self.srcPath.."' -acodec "..audioF.." -ab "..audioQ.." -vcodec copy '"..self.destPath.."'"
