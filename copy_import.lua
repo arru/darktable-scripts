@@ -17,9 +17,9 @@ local avchdPattern = "AVCHD-${year}${month}${day}-${hour}${minute}${name}."..vid
 
 --https://www.darktable.org/usermanual/ch02s03.html.php#supported_file_formats
 local supported_image_formats_init = {"3FR", "ARW", "BAY", "BMQ", "CAP", "CINE",
-"CR2", "CRW", "CS1", "DC2", "DCR", "DNG", "ERF", "FFF", "EXR", "IA", "IIQ",
+"CR2", "CRW", "CS1", "DC2", "DCR", "DNG", "ERF", "FFF", "EXR", "GPR", "IA", "IIQ",
 "JPEG", "JPG", "K25", "KC2", "KDC", "MDC", "MEF", "MOS", "MRW", "NEF", "NRW",
-"ORF", "PEF", "PFM", "PNG", "PXN", "QTK", "RAF", "RAW", "RDC", "RW1", "RW2",
+"ORF", "ORI", "PEF", "PFM", "PNG", "PXN", "QTK", "RAF", "RAW", "RDC", "RW1", "RW2",
 "SR2", "SRF", "SRW", "STI", "TIF", "TIFF", "X3F"}
 for k,v in pairs({"JP2", "J2K", "JPF", "JPX", "JPM", "MJ2"}) do supported_image_formats_init[k] = v end
 
