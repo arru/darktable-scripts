@@ -137,10 +137,11 @@ local import_transaction = {
 
 import_transaction.__index = import_transaction
 
-function import_transaction.new(path, destRoot, type)
+function import_transaction.new(path, destRoot, destStructure, type)
   local self = setmetatable({}, import_transaction)
   self.srcPath = path
   self.destRoot = destRoot
+  self.destStructure = destStructure
   self.type = type
   self.sidecars = {}
   
@@ -304,7 +305,7 @@ end
 
 -------- Subroutines --------
 
-local function scrape_files(scrapePattern, destRoot, structure, list, stats)
+local function scrape_files(scrapePattern, imageRoot, imageStructure, videoRoot, videoStructure, list, stats)
   local numFilesFound = 0
   debug_print ("Scraping "..scrapePattern.." to "..destRoot)
   local master_files_found = {}
@@ -314,23 +315,21 @@ local function scrape_files(scrapePattern, destRoot, structure, list, stats)
     
     numFilesFound = numFilesFound + 1
 
-    local type = nil
+    local trans = nil
 
     if (ext ~= nil and supported_image_formats[ext:upper()] == true) then
-      type = 'image'
+      trans = import_transaction.new(masterPath, imageRoot, imageStructure, 'image')
     elseif _copy_import_video_enabled == true then
       if (ext ~= nil and converted_video_formats[ext:upper()] == true) then
         assert(ffmpeg_available)
-        type = 'raw_video'
+        trans = import_transaction.new(masterPath, videoRoot, videoStructure, 'raw_video')
       elseif (ext ~= nil and copied_video_formats[ext:upper()] == true) then
-        type = 'video'
+        trans = import_transaction.new(masterPath, videoRoot, videoStructure, 'video')
       end
     end
-    
-    if (type ~= nil) then
-      local trans = import_transaction.new(masterPath, destRoot, type)
+
+    if (trans ~= nil) then
       print (masterPath)
-      trans.destStructure = structure
       
       table.insert(list, trans)
       master_files_found[dir..name] = trans
@@ -434,13 +433,20 @@ local function _copy_import_main()
   end
   
   if destMounted == true and (not _copy_import_video_enabled or videoDestMounted) then
-    scrape_files(escape_path(mount_root)..dcimPath, dcimDestRoot, _copy_import_default_folder_structure.."/${name}.${extension}", transactions, stats)
+    local defaultFolderStructure = _copy_import_default_folder_structure.."/${name}.${extension}"
     
-    if _copy_import_video_enabled == true then 
+    if video_separate_dest == true then
+        scrape_files(escape_path(mount_root)..dcimPath, dcimDestRoot, defaultFolderStructure, videoDestRoot,  video_folder_structure.."/${name}.${extension}", transactions, stats)
+    else
+        scrape_files(escape_path(mount_root)..dcimPath, dcimDestRoot, defaultFolderStructure, dcimDestRoot, defaultFolderStructure, transactions, stats)
+    end
+
+    -- Handle AVCHD
+    if _copy_import_video_enabled == true then
       if video_separate_dest == true then
-        scrape_files(escape_path(mount_root)..avchd_stream_path, videoDestRoot, video_folder_structure.."/"..avchdPattern, transactions, stats)
+        scrape_files(escape_path(mount_root)..avchd_stream_path, nil, nil, videoDestRoot, video_folder_structure.."/"..avchdPattern, transactions, stats)
       else
-          scrape_files(escape_path(mount_root)..avchd_stream_path, dcimDestRoot, _copy_import_default_folder_structure.."/"..avchdPattern, transactions, stats)
+          scrape_files(escape_path(mount_root)..avchd_stream_path, nil, nil, dcimDestRoot, _copy_import_default_folder_structure.."/"..avchdPattern, transactions, stats)
       end
     end
   else
@@ -457,9 +463,11 @@ local function _copy_import_main()
     if (altDirExists == true) then
       local ensureInboxExistsSuccess = os.execute("mkdir -p '"..dir.."/"..alternate_inbox_name.."'")
       assert(ensureInboxExistsSuccess == true)
+      
+      local destStructure = dirStructure.."/${name}.${extension}"
 
       --Note: without any wildcard * in path, ls will list filenames only, wihout full path
-        scrape_files(escape_path(dir).."/"..escape_path(alternate_inbox_name).."/*", dir, dirStructure.."/${name}.${extension}", transactions, stats)
+        scrape_files(escape_path(dir).."/"..escape_path(alternate_inbox_name).."/*", dir, destStructure, dir, destStructure, transactions, stats)
     else
       dt.print(dir.." could not be found and was skipped over.")
     end
