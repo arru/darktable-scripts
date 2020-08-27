@@ -576,6 +576,12 @@ end
 
 dt.preferences.register("copy_import", "VideoImportEnabled", "bool", "Copy import: import video", "", false )
 
--------- Event registration --------
+-------- Plugin registration --------
+
+dt.gui.libs.image.register_action(
+  "copy & import from inbox",
+  function() copy_import_handler() end,
+  "Copy & import from inbox folder(s) and memory card(s)"
+)
 
 dt.register_event("shortcut", copy_import_handler, "Copy and import images from memory cards and '"..alternate_inbox_name.."' folders")
