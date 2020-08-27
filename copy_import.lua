@@ -121,6 +121,21 @@ local function on_same_volume(absPathA, absPathB)
   return isSameVolume
 end
 
+function prepare_dest_dir(file_path)
+  local destDir, _, _ = split_path(file_path)
+
+  local makeDirCommand = "mkdir -p '"..destDir.."'"
+
+  if _copy_import_dry_run then
+    debug_print (makeDirCommand)
+  else
+    local makeDirSuccess = os.execute(makeDirCommand)
+    assert(makeDirSuccess == true)
+  end
+  
+  return destDir
+end
+
 -------- import_transaction class --------
 
 local import_transaction = {
@@ -215,21 +230,10 @@ function import_transaction.transfer_media(self, stats)
   assert (self.tags ~= nil)
   assert (self.date ~= nil)
   
-  local destDir, _, _ = split_path(self.destPath)
-  
-  local makeDirCommand = "mkdir -p '"..destDir.."'"
-  
   self.destFileExists = file_exists("'"..self.destPath.."'")
   
-  if (self.destFileExists == false) then
-    if _copy_import_dry_run then
-      debug_print (makeDirCommand)
-    else
-      local makeDirSuccess = os.execute(makeDirCommand)
-      assert(makeDirSuccess == true)
-    end
-  end
-  
+  local destDir = prepare_dest_dir(self.destPath)
+
   local transfer_sidecars = function (can_move, stats)
     local src_dir, filename, _ = split_path(self.srcPath)
     
