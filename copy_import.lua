@@ -578,10 +578,24 @@ dt.preferences.register("copy_import", "VideoImportEnabled", "bool", "Copy impor
 
 -------- Plugin registration --------
 
-dt.gui.libs.image.register_action(
-  "copy & import from inbox",
-  function() copy_import_handler() end,
-  "Copy & import from inbox folder(s) and memory card(s)"
+local import_button = dt.new_widget("button") {
+    label = 'copy import',
+    clicked_callback = function(widget)
+      copy_import_handler()
+    end
+}
+
+dt.register_lib(
+    "copy_import", -- id
+	"copy import", -- name
+	true, --expandable
+	false, --resetable
+	{[dt.gui.views.lighttable] = {"DT_UI_CONTAINER_PANEL_RIGHT_CENTER", 20}}, --containers
+    dt.new_widget("box"){
+        import_button
+    },
+    nil,-- view_enter
+    nil -- view_leave
 )
 
 dt.register_event("shortcut", copy_import_handler, "Copy and import images from memory cards and '"..alternate_inbox_name.."' folders")
