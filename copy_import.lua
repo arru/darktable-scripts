@@ -703,4 +703,4 @@ dt.register_lib(
     nil -- view_leave
 )
 
-dt.register_event("shortcut", copy_import_handler, "Copy and import images from memory cards and '"..alternate_inbox_name.."' folders")
+dt.register_event("shortcut", function() main_handler(_copy_import_main) end, "Copy and import images from memory cards and '"..alternate_inbox_name.."' folders")
