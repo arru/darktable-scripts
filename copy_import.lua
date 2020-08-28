@@ -337,6 +337,78 @@ function import_transaction.transfer_media(self, stats)
   return destDir
 end
 
+-------- MoveTransaction class --------
+
+-- Subclass for moving already imported images in library
+local MoveTransaction = {
+  image = nil
+}
+for k,v in pairs(import_transaction) do MoveTransaction[k] = v end
+
+MoveTransaction.__index = MoveTransaction
+
+function MoveTransaction.new(image, destRoot, destStructure, type)
+  local self = setmetatable({}, MoveTransaction)
+  
+  --TODO call super.new?
+  
+  self.destRoot = destRoot
+  self.type = type
+  self.sidecars = {}
+  
+  self.image = image
+  self.srcPath = self.image.path.."/"..self.image.filename
+  -- In a move we don't wanna change the file name, so adding it as-is, no substitution
+  self.destStructure = destStructure.."/"..self.image.filename
+  
+  assert(self.srcPath ~= "")
+  assert(self.destRoot ~= "")
+  assert(self.type ~= "")
+  
+  return self
+end
+
+function MoveTransaction:scrape_sidecars(stats)
+  local dir, name, ext = split_path(self.srcPath)
+  local scrapePattern = dir.."/"..name..".*"
+  
+  for sidecarPath in io.popen("ls "..scrapePattern):lines() do
+    local dir, name, ext = split_path(sidecarPath)
+    
+    debug_print("Looking for "..dir..name)
+    if (ext ~= nil) then
+      debug_print("Sidecar check "..dir..name.."."..ext)
+      if (sidecar_formats[ext:upper()] == true) then
+        self:add_sidecar(ext)
+        stats['numSidecarsFound'] = stats['numSidecarsFound'] + 1
+      end
+    end
+  end
+end
+
+function MoveTransaction:transfer_media(stats)
+  -- local can_move = on_same_volume(self.srcPath,self.destPath)
+  local can_move = true
+  
+  local destDir = prepare_dest_dir(self.destPath)
+  
+  if _copy_import_dry_run then
+    print("dt.database.move_image("..self.image.id..", "..destDir..")")
+  else
+    -- get film roll for destDir (or create if nonexistent)
+    -- will fail unless the directory does exist - hence excluded in dry run
+    destFilm = dt.films.new(destDir)
+    assert (destFilm ~= nil)
+    
+    if destFilm ~= self.image.film then
+      self:transfer_sidecars(can_move, stats)
+      dt.database.move_image(self.image, destFilm)
+    else
+      print("Leaving "..self.image.path.." (same source as destination)")
+    end
+  end
+end
+
 -------- Subroutines --------
 
 -- TODO check if destination is mounted
