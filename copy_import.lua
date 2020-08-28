@@ -734,8 +734,9 @@ local import_button = dt.new_widget("button") {
   end
 }
 
-local move_button = dt.new_widget("button") {
+_copy_import_move_button = dt.new_widget("button") {
   label = 'move to',
+  sensitive = false,
   clicked_callback = function(widget)
     local destRoot = _copy_import_move_dest_combo.value
     local destStructure = nil
@@ -758,18 +759,19 @@ local move_dest_label = dt.new_widget("label") {
   ellipsize = "start",
   halign = "end"}
   
-  _copy_import_move_dest_combo = dt.new_widget('combobox') {
-    label = "destination",
-    tooltip = "Folder structure to move selection to",
-    selected = 1,
-    changed_callback = function(self)
-      move_dest_label.label = self.value
-    end,
-    reset_callback = function(self)
-      -- TODO
-    end,
-    table.unpack(alternate_dests_paths),
-  }
+_copy_import_move_dest_combo = dt.new_widget('combobox') {
+  label = "destination",
+  tooltip = "Folder structure to move selection to",
+  selected = 1,
+  changed_callback = function(self)
+    move_dest_label.label = self.value
+    _copy_import_move_button.sensitive = true
+  end,
+  reset_callback = function(self)
+    -- TODO
+  end,
+  table.unpack(alternate_dests_paths),
+}
   
   dt.register_lib(
   "copy_import", -- id
@@ -783,7 +785,7 @@ local move_dest_label = dt.new_widget("label") {
     _copy_import_move_dest_combo,
       dt.new_widget("box"){
         orientation = "horizontal",
-        move_button,
+        _copy_import_move_button,
         move_dest_label,
       }
   },
