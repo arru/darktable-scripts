@@ -71,6 +71,9 @@ local function debug_print(message)
   end
 end
 
+--Lua has its own namespace for preferences and you can't access nor write normal darktable preferences
+--TODO nice to have: parentheses (as in Darktable) instead of curly braces
+
 local function interp(s, tab)
   local sstring = (s:gsub('($%b{})', function(w) return tab[w:sub(3, -2)] or w end))
   if (string.find(sstring, "${")) then
@@ -86,6 +89,7 @@ local function escape_path(path)
   return string.gsub(path, " ", "\\ ")
 end
 
+--TODO return extension = nil if no extension
 local function split_path(path)
   return string.match(path, "(.-)([^\\/]-)%.?([^%.\\/]*)$")
 end
@@ -229,6 +233,10 @@ function import_transaction.load(self)
       = exifDateTag:match(exif_date_pattern)
     self.date = date
     
+    -- NOTE: by the time we get here, dirStructure must, in addition to the directory structure,
+    -- have ${name} and ${extension} defined (or a filename added verbatim at the end)
+    -- otherwise destPath will not contain the expected complete path to the file being moved/copied
+    
     local dirStructure = self.destStructure
 
     if (dirStructure == nil) then
@@ -294,6 +302,7 @@ function import_transaction.transfer_media(self, stats)
       end
       
       --adjust file date attributes
+      --TODO write exif tags to movies lacking tag, after conversion or otherwise
       local datestring = self.date['year']..self.date['month']..self.date['day']..self.date['hour']..self.date['minute'].."."..self.date['seconds']
       local touchCommand = "touch -c -mt "..datestring.." '"..self.destPath.."'"
       if _copy_import_dry_run == true then
@@ -310,7 +319,7 @@ function import_transaction.transfer_media(self, stats)
       end
       
       if _copy_import_dry_run == true then
-        debug_print (copyMoveCommand)
+        print (copyMoveCommand)
       else
         local copyMoveSuccess = os.execute(copyMoveCommand)
         assert(copyMoveSuccess == true)
@@ -330,6 +339,8 @@ end
 
 -------- Subroutines --------
 
+-- TODO check if destination is mounted
+-- TODO allow list == nil for video
 local function scrape_files(scrapePattern, imageRoot, imageStructure, videoRoot, videoStructure, list, stats)
   local numFilesFound = 0
   debug_print ("Scraping "..scrapePattern.." to "..destRoot)
@@ -361,26 +372,28 @@ local function scrape_files(scrapePattern, imageRoot, imageStructure, videoRoot,
     end
   end
   
-  for sidecarPath in io.popen("ls "..scrapePattern):lines() do
-    local dir, name, ext = split_path(sidecarPath)
-    local master_file = nil
-    local supported_format = false
-    
-    master_file = master_files_found[dir..name]
-    debug_print("Looking for "..dir..name)
-    if (master_file ~= nil and ext ~= nil) then
-      debug_print("Sidecar check "..dir..name.."."..ext)
-      if (sidecar_formats[ext:upper()] == true) then
-        master_file:add_sidecar(ext)
-        supported_format = true
-        stats['numSidecarsFound'] = stats['numSidecarsFound'] + 1
-      elseif (supported_image_formats[ext:upper()] == true or converted_video_formats[ext:upper()] == true or copied_video_formats[ext:upper()] == true) then
-        supported_format = true
+  if numFilesFound > 0 then
+    for sidecarPath in io.popen("ls "..scrapePattern):lines() do
+      local dir, name, ext = split_path(sidecarPath)
+      local master_file = nil
+      local supported_format = false
+      
+      master_file = master_files_found[dir..name]
+      debug_print("Looking for "..dir..name)
+      if (master_file ~= nil and ext ~= nil) then
+        debug_print("Sidecar check "..dir..name.."."..ext)
+        if (sidecar_formats[ext:upper()] == true) then
+          master_file:add_sidecar(ext)
+          supported_format = true
+          stats['numSidecarsFound'] = stats['numSidecarsFound'] + 1
+        elseif (supported_image_formats[ext:upper()] == true or converted_video_formats[ext:upper()] == true or copied_video_formats[ext:upper()] == true) then
+          supported_format = true
+        end
       end
-    end
-  
-    if (supported_format == false) then
-      stats['numUnsupportedFound'] = stats['numUnsupportedFound'] + 1
+      
+      if (supported_format == false) then
+        stats['numUnsupportedFound'] = stats['numUnsupportedFound'] + 1
+      end
     end
   end
   
@@ -417,6 +430,8 @@ local function _copy_import_main()
   local videoDestRoot = dcimDestRoot
   local video_folder_structure = nil
   
+  --TODO: add controls to start import, and to select default folder for this session
+  --also, make a separate "move" feature to sort images _after_ importing
   _copy_import_default_folder_structure = dt.preferences.read("copy_import","FolderPattern", "string")
 
   if using_multiple_dests then
@@ -434,8 +449,8 @@ local function _copy_import_main()
   end
   assert (video_folder_structure ~= nil)
   
-  transactions = {}
-  changedDirs = {}
+  local transactions = {}
+  local changedDirs = {}
   
   local testDestRootMounted = "test -d '"..dcimDestRoot.."'"
   local destMounted = os.execute(testDestRootMounted)
@@ -488,6 +503,8 @@ local function _copy_import_main()
       dt.print(dir.." could not be found and was skipped over.")
     end
   end
+  
+  -- TODO break out routines above into separate utility, also run on separate video directory (if active)
   
   --Read image metadata and copy/move
   local copy_progress_job = dt.gui.create_job ("Copying/moving media", true)
