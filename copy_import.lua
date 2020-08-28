@@ -677,13 +677,13 @@ end
 
 -------- Error handling wrapper --------
 
-function copy_import_handler()
+function main_handler(main_function)
   if (_debug) then
     --Do a regular call, which will output complete error traceback to console
-    _copy_import_main()
+    main_function()
   else
     
-    local main_success, main_error = pcall(_copy_import_main)
+    local main_success, main_error = pcall(main_function)
     if (not main_success) then
       --Do two print calls, in case tostring conversion fails, user will still see a message
       dt.print("An error prevented Copy import script from completing")
