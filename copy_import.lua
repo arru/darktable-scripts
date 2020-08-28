@@ -246,6 +246,30 @@ function import_transaction.load(self)
   end
 end
 
+function import_transaction.transfer_sidecars(self, can_move, stats)
+  local src_dir, filename, _ = split_path(self.srcPath)
+  
+  for _, sidecar_ext in pairs(self.sidecars) do
+    sidecar_src_path = src_dir..filename.."."..sidecar_ext
+    sidecar_dest_path = destDir..filename.."."..sidecar_ext
+    
+    local copyMoveCommand = "cp -n '"..sidecar_src_path.."' '"..sidecar_dest_path.."'"
+    if (can_move) then
+      copyMoveCommand = "mv -n '"..sidecar_src_path.."' '"..sidecar_dest_path.."'"
+    end
+    
+    if _copy_import_dry_run == true then
+      debug_print (copyMoveCommand)
+    else
+      local copyMoveSuccess = os.execute(copyMoveCommand)
+      assert(copyMoveSuccess == true)
+      assert(file_exists("'"..sidecar_dest_path.."'"))
+    end
+    
+    stats['numFilesProcessed'] = stats['numFilesProcessed'] + 1
+  end
+end
+
 function import_transaction.transfer_media(self, stats)
   assert (self.destPath ~= nil)
   assert (self.tags ~= nil)
@@ -254,33 +278,9 @@ function import_transaction.transfer_media(self, stats)
   self.destFileExists = file_exists("'"..self.destPath.."'")
   
   local destDir = prepare_dest_dir(self.destPath)
-
-  local transfer_sidecars = function (can_move, stats)
-    local src_dir, filename, _ = split_path(self.srcPath)
-    
-    for _, sidecar_ext in pairs(self.sidecars) do
-      sidecar_src_path = src_dir..filename.."."..sidecar_ext
-      sidecar_dest_path = destDir..filename.."."..sidecar_ext
-      
-      local copyMoveCommand = "cp -n '"..sidecar_src_path.."' '"..sidecar_dest_path.."'"
-      if (can_move) then
-        copyMoveCommand = "mv -n '"..sidecar_src_path.."' '"..sidecar_dest_path.."'"
-      end
-      
-      if _copy_import_dry_run == true then
-        debug_print (copyMoveCommand)
-      else
-        local copyMoveSuccess = os.execute(copyMoveCommand)
-        assert(copyMoveSuccess == true)
-        assert(file_exists("'"..sidecar_dest_path.."'"))
-      end
-      
-      stats['numFilesProcessed'] = stats['numFilesProcessed'] + 1
-    end
-  end
   
   local can_move = self.type ~= 'raw_video' and on_same_volume(self.srcPath,self.destPath)
-  transfer_sidecars(can_move, stats)
+  self:transfer_sidecars(can_move, stats)
 
   if (self.destFileExists == false) then
     if self.type == 'raw_video' then
