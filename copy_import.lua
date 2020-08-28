@@ -402,8 +402,10 @@ function MoveTransaction:transfer_media(stats)
     if destFilm ~= self.image.film then
       self:transfer_sidecars(can_move, stats)
       dt.database.move_image(self.image, destFilm)
+      stats['numFilesProcessed'] = stats['numFilesProcessed'] + 1
     else
       print("Leaving "..self.image.path.." (same source as destination)")
+      stats['numMastersDuplicate'] = stats['numMastersDuplicate'] + 1
     end
   end
 end
@@ -645,6 +647,8 @@ local function import_move_main(destRoot, destStructure)
   local move_progress_job = dt.gui.create_job ("Moving media", true)
   local input_images = dt.gui.action_images
   
+   stats['numFilesFound'] = #input_images
+  
   exiftool_path = dt.preferences.read("copy_import", "ExifToolPath", "file")
 
   for _, im in pairs(input_images) do
@@ -670,7 +674,13 @@ local function import_move_main(destRoot, destStructure)
     end
     move_progress_job.percent = 0.5 + ((stats['numFilesProcessed'] + stats['numMastersDuplicate'])*0.5) / stats['numFilesFound']
   end
-
+  
+  if stats['numFilesProcessed'] > 0 then
+    dt.print("Moved "..stats['numFilesProcessed'].." image(s).")
+  else
+    dt.print("No images moved.")
+  end
+  
   move_progress_job.valid = false
 end
 
@@ -743,7 +753,7 @@ local move_button = dt.new_widget("button") {
 }
 
 local move_dest_label = dt.new_widget("label") {
-  label = '',
+  label = '(please select)',
   selectable = false,
   ellipsize = "start",
   halign = "end"}
@@ -769,12 +779,13 @@ local move_dest_label = dt.new_widget("label") {
   {[dt.gui.views.lighttable] = {"DT_UI_CONTAINER_PANEL_RIGHT_CENTER", 20}}, --containers
   dt.new_widget("box"){
     import_button,
-    dt.new_widget("box"){
-      orientation = "horizontal",
-      move_button,
-      move_dest_label,
-    },
-    _copy_import_move_dest_combo
+    dt.new_widget("section_label"){label="Move with structure"},
+    _copy_import_move_dest_combo,
+      dt.new_widget("box"){
+        orientation = "horizontal",
+        move_button,
+        move_dest_label,
+      }
   },
   nil,-- view_enter
   nil -- view_leave
