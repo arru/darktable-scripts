@@ -256,6 +256,7 @@ end
 
 function import_transaction.transfer_sidecars(self, can_move, stats)
   local src_dir, filename, _ = split_path(self.srcPath)
+  local destDir, _, _ = split_path(self.destPath)
   
   for _, sidecar_ext in pairs(self.sidecars) do
     sidecar_src_path = src_dir..filename.."."..sidecar_ext
@@ -370,18 +371,16 @@ end
 
 function MoveTransaction:scrape_sidecars(stats)
   local dir, name, ext = split_path(self.srcPath)
-  local scrapePattern = dir.."/"..name..".*"
+  local scrapePattern = dir..name..".*"
   
   for sidecarPath in io.popen("ls "..scrapePattern):lines() do
     local dir, name, ext = split_path(sidecarPath)
     
-    debug_print("Looking for "..dir..name)
-    if (ext ~= nil) then
-      debug_print("Sidecar check "..dir..name.."."..ext)
-      if (sidecar_formats[ext:upper()] == true) then
-        self:add_sidecar(ext)
-        stats['numSidecarsFound'] = stats['numSidecarsFound'] + 1
-      end
+    -- exclude .xmp since they're handled by DarkTable during intra-library moves
+    if (ext ~= nil) and (ext:upper() ~= 'XMP') and (sidecar_formats[ext:upper()] == true) then
+      self:add_sidecar(ext)
+      print("added "..name.." with extension:"..ext)
+      stats['numSidecarsFound'] = stats['numSidecarsFound'] + 1
     end
   end
 end
