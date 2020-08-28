@@ -640,6 +640,42 @@ local function _copy_import_main()
   assert(stats['numFilesProcessed'] + stats['numMastersDuplicate'] == stats['numImagesFound'] + stats['numVideosFound'] + stats['numSidecarsFound'])
 end
 
+local function import_move_main(destRoot, destStructure)
+  local stats = TransactionsStats.new()
+  local transactions = {}
+  
+  local move_progress_job = dt.gui.create_job ("Moving media", true)
+  local input_images = dt.gui.action_images
+  
+  exiftool_path = dt.preferences.read("copy_import", "ExifToolPath", "file")
+
+  for _, im in pairs(input_images) do
+    local transaction = MoveTransaction.new(im, destRoot, destStructure, 'image')
+
+    transaction:load()
+    transaction:scrape_sidecars(stats)
+    
+    table.insert(transactions, transaction)
+    
+    stats['loadProgress'] = stats['loadProgress'] + 1
+    move_progress_job.percent = (stats['loadProgress']*0.5) / stats['numFilesFound']
+  end
+
+  for _,tr in pairs(transactions) do
+    if tr.type ~= nil then
+      if tr.type == 'image' then
+        stats['numImagesFound'] = stats['numImagesFound'] + 1
+      elseif tr.type == 'video' or tr.type == 'raw_video' then
+        stats['numVideosFound'] = stats['numVideosFound'] + 1
+      end
+      local destDir = tr:transfer_media(stats)
+    end
+    move_progress_job.percent = 0.5 + ((stats['numFilesProcessed'] + stats['numMastersDuplicate'])*0.5) / stats['numFilesFound']
+  end
+
+  move_progress_job.valid = false
+end
+
 -------- Error handling wrapper --------
 
 function copy_import_handler()
@@ -684,23 +720,66 @@ dt.preferences.register("copy_import", "VideoImportEnabled", "bool", "Copy impor
 -------- Plugin registration --------
 
 local import_button = dt.new_widget("button") {
-    label = 'copy import',
-    clicked_callback = function(widget)
-      copy_import_handler()
-    end
+  label = 'copy import',
+  clicked_callback = function(widget)
+    main_handler(_copy_import_main)
+  end
 }
 
-dt.register_lib(
-    "copy_import", -- id
-	"copy import", -- name
-	true, --expandable
-	false, --resetable
-	{[dt.gui.views.lighttable] = {"DT_UI_CONTAINER_PANEL_RIGHT_CENTER", 20}}, --containers
+local move_button = dt.new_widget("button") {
+  label = 'move to',
+  clicked_callback = function(widget)
+    local destRoot = _copy_import_move_dest_combo.value
+    local destStructure = nil
+    
+    for _, altConf in pairs(alternate_dests) do
+      local dir = altConf[1]
+      if dir == destRoot then
+        destStructure = altConf[2]
+        break
+      end
+    end
+    
+    import_move_main(destRoot, destStructure)
+  end
+}
+
+local move_dest_label = dt.new_widget("label") {
+  label = '',
+  selectable = false,
+  ellipsize = "start",
+  halign = "end"}
+  
+  _copy_import_move_dest_combo = dt.new_widget('combobox') {
+    label = "destination",
+    tooltip = "Folder structure to move selection to",
+    selected = 1,
+    changed_callback = function(self)
+      move_dest_label.label = self.value
+    end,
+    reset_callback = function(self)
+      -- TODO
+    end,
+    table.unpack(alternate_dests_paths),
+  }
+  
+  dt.register_lib(
+  "copy_import", -- id
+  "copy import", -- name
+  true, --expandable
+  false, --resetable
+  {[dt.gui.views.lighttable] = {"DT_UI_CONTAINER_PANEL_RIGHT_CENTER", 20}}, --containers
+  dt.new_widget("box"){
+    import_button,
     dt.new_widget("box"){
-        import_button
+      orientation = "horizontal",
+      move_button,
+      move_dest_label,
     },
-    nil,-- view_enter
-    nil -- view_leave
+    _copy_import_move_dest_combo
+  },
+  nil,-- view_enter
+  nil -- view_leave
 )
 
 dt.register_event("shortcut", function() main_handler(_copy_import_main) end, "Copy and import images from memory cards and '"..alternate_inbox_name.."' folders")
