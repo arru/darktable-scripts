@@ -136,6 +136,27 @@ function prepare_dest_dir(file_path)
   return destDir
 end
 
+-------- TransactionsStats class --------
+
+local TransactionsStats = {
+  numImagesFound = 0,
+  numVideosFound = 0,
+  numMastersDuplicate = 0,
+  numFilesFound = 0,
+  numFilesProcessed = 0,
+  loadProgress = 0,
+  numUnsupportedFound = 0,
+  numSidecarsFound = 0
+}
+
+TransactionsStats.__index = TransactionsStats
+
+function TransactionsStats.new()
+  local self = setmetatable({}, TransactionsStats)
+
+  return self
+end
+
 -------- import_transaction class --------
 
 local import_transaction = {
@@ -369,16 +390,7 @@ end
 -------- Main function --------
 
 local function _copy_import_main()
-  local stats = {}
-  
-  stats['numImagesFound'] = 0
-  stats['numVideosFound'] = 0
-  stats['numMastersDuplicate'] = 0
-  stats['numFilesFound'] = 0
-  stats['numFilesProcessed'] = 0
-  stats['loadProgress'] = 0
-  stats['numUnsupportedFound'] = 0
-  stats['numSidecarsFound'] = 0
+  local stats = TransactionsStats.new()
   
   exiftool_path = dt.preferences.read("copy_import", "ExifToolPath", "file")
   ffmpeg_path = dt.preferences.read("copy_import", "FFMPEGPath", "file")
