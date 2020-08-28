@@ -415,7 +415,6 @@ end
 -- TODO allow list == nil for video
 local function scrape_files(scrapePattern, imageRoot, imageStructure, videoRoot, videoStructure, list, stats)
   local numFilesFound = 0
-  debug_print ("Scraping "..scrapePattern.." to "..destRoot)
   local master_files_found = {}
 
   for masterPath in io.popen("ls "..scrapePattern):lines() do
