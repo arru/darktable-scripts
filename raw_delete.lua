@@ -158,9 +158,11 @@ function raw_delete_delete_by_rating_action()
   local minRatingForRaw = tonumber(raw_delete_min_rating_combo.value)
   
   for _, tuple in pairs(tuples) do
-    if tuple:rating() >= minRatingForRaw then
+    local rating = tuple:rating()
+    
+    if rating >= minRatingForRaw then
       _raw_delete_delete_lossy(tuple)
-    else
+    elseif rating > 0 then
       _raw_delete_delete_raw(tuple)
     end
   end
@@ -221,7 +223,7 @@ raw_delete_min_rating_combo = dt.new_widget('combobox') {
   reset_callback = function(self)
     self.value = 4
   end,
-  "not rejected",1,2,3,4
+  1,2,3,4,5
 }
 
 dt.register_lib(
