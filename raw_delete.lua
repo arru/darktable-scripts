@@ -185,11 +185,11 @@ end
 
 -------- Plugin registration --------
 
-dt.register_event("shortcut", function() raw_delete_delete_lossy_action() end, "Keep lossy (eg. JPEG) from pairs/tuples of same image")
+dt.register_event("shortcut", function() raw_delete_delete_raw_action() end, "Keep lossy (eg. JPEG) from pairs of same image")
 
 dt.register_event("shortcut", function() raw_delete_delete_by_rating_action() end, "Keep lossless (eg. RAW) at or above set rating, lossy (eg. JPEG) if lower")
 
-dt.register_event("shortcut", function() raw_delete_delete_raw_action() end, "Keep lossless (eg. RAW) from pairs/tuples of same image")
+dt.register_event("shortcut", function() raw_delete_delete_lossy_action() end, "Keep lossless (eg. RAW) from pairs of same image")
 
 local delete_raw_button = dt.new_widget("button") {
   label = 'Keep JPG',
