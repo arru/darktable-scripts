@@ -10,6 +10,18 @@ local function split_path(path)
   return string.match(path, "(.-)([^\\/]-)%.?([^%.\\/]*)$")
 end
 
+local function _print_summary(count, verb)
+  assert (count >= 0)
+  
+  if count == 0 then
+    dt.print("No images affected")
+  elseif count == 1 then
+    dt.print("One "..verb)
+  else
+    dt.print(count.." "..verb)
+  end
+end
+
 -------- CameraImageTuple class --------
 
 local CameraImageTuple = {
@@ -157,31 +169,46 @@ function raw_delete_delete_by_rating_action()
   local tuples = _collect_tuples(dt.gui.action_images)
   local minRatingForRaw = tonumber(raw_delete_min_rating_combo.value)
   
+  raw_delete_counter = 0
+  lossy_delete_counter = 0
+  
   for _, tuple in pairs(tuples) do
     local rating = tuple:rating()
     
     if rating >= minRatingForRaw then
       _raw_delete_delete_lossy(tuple)
+      lossy_delete_counter = lossy_delete_counter + 1
     elseif rating > 0 then
       _raw_delete_delete_raw(tuple)
+      raw_delete_counter = raw_delete_counter + 1
     end
   end
+  
+  dt.print("Deleted "..lossy_delete_counter.." lossy images, "..raw_delete_counter.." raw images")
 end
 
 function raw_delete_delete_raw_action()
   local tuples = _collect_tuples(dt.gui.action_images)
+  local counter = 0
   
   for _, tuple in pairs(tuples) do
     _raw_delete_delete_raw(tuple)
+    counter = counter + 1
   end
+  
+  _print_summary(counter, "raw image(s) rejected")
 end
 
 function raw_delete_delete_lossy_action()
   local tuples = _collect_tuples(dt.gui.action_images)
-  
+  local counter = 0
+
   for _, tuple in pairs(tuples) do
     _raw_delete_delete_lossy(tuple)
+    counter = counter + 1
   end
+  
+  _print_summary(counter, "lossy image(s) rejected")
 end
 
 
