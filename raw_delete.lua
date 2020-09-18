@@ -132,7 +132,7 @@ function _collect_tuples(action_images)
   local filtered_tuples = {}
   for _, t in pairs(all_tuples) do
     if #t.images > 1 then
-      --TODO make DT groups of tuple images
+      --TODO group tuple images
       table.insert(filtered_tuples, t)
       
       print(t.identifier.." ***")
@@ -164,6 +164,7 @@ end
 -------- Action functions --------
 
 -- TODO: support iOS image copies from social media (if doable)
+--FIXME: ensure that the "kept" image does not have rejected rating
 
 function raw_delete_delete_by_rating_action()
   local tuples = _collect_tuples(dt.gui.action_images)
