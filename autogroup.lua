@@ -206,6 +206,16 @@ function autogroup_handler()
   end
 end
 
+
+-------- Action --------
+
+dt.gui.libs.image.register_action(
+  "Auto-group",
+  function(event, images) _autogroup_main(images) end,
+  "Automatically group images based on timestamp"
+)
+
+-------- Preferences --------
 dt.preferences.register("autogroup", "LowerGroupingTime", "integer", "Autogroup: images always belong in the same group when time apart (seconds) is no more than", "HELP", 4, 0, 10000 )
 dt.preferences.register("autogroup", "UpperGroupingTime", "integer", "Autogroup: images will never be grouped if time apart (seconds) is more than", "HELP", 60, 2, 10000 )
 dt.preferences.register("autogroup", "NoGroupsFallback", "bool", "Autogroup: guaranteed grouping, use minimum setting for grouping if no groups can be found", "HELP", true )
