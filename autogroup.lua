@@ -206,6 +206,23 @@ function autogroup_handler()
   end
 end
 
+-------- Auto run after import --------
+
+function _autogroup_post_import_film (event, film)
+  if dt.preferences.read("autogroup","GroupOnImport","bool") then
+    local image_table = {}
+    
+    for i=1, #film do
+      table.insert(image_table, film[i])
+    end
+    
+    _autogroup_main(image_table)
+  end
+end
+
+dt.register_event("post-import-film",
+  _autogroup_post_import_film
+)
 
 -------- Action --------
 
@@ -216,8 +233,10 @@ dt.gui.libs.image.register_action(
 )
 
 -------- Preferences --------
+
 dt.preferences.register("autogroup", "LowerGroupingTime", "integer", "Autogroup: images always belong in the same group when time apart (seconds) is no more than", "HELP", 4, 0, 10000 )
 dt.preferences.register("autogroup", "UpperGroupingTime", "integer", "Autogroup: images will never be grouped if time apart (seconds) is more than", "HELP", 60, 2, 10000 )
 dt.preferences.register("autogroup", "NoGroupsFallback", "bool", "Autogroup: guaranteed grouping, use minimum setting for grouping if no groups can be found", "HELP", true )
+dt.preferences.register("autogroup", "GroupOnImport", "bool", "Autogroup: run autogroup after import of new images", "HELP", true )
 
 dt.register_event("shortcut", autogroup_handler, "Auto-group images based on time taken")
