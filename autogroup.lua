@@ -41,13 +41,13 @@ local function _find_cutoff (intervals)
   local cutoff_interval = nil
   local key_group_size = 0
   
-  if _debug then  
+  if _debug then
     print("3:\t"..last_interval)
   end
   
   local interval_growth = 1.0
   local max_growth_factor = 0.0
-  --Search for largest growth factor, store away base interval value for growth 
+  --Search for largest growth factor, store away base interval value for growth
   --as cutoff_interval result
   for g = 4, #intervals do
     local new_interval = intervals[g]
@@ -64,7 +64,7 @@ local function _find_cutoff (intervals)
       key_group_size = g
     end
     
-    if _debug then  
+    if _debug then
       print(g..":\t"..new_interval.."\t("..interval_growth..")")
     end
     last_interval = new_interval
@@ -110,7 +110,7 @@ local function _autogroup_main(image_table)
   
   -------- Build group size/interval table --------
   
-  for i = 1, #ordered_keys do    
+  for i = 1, #ordered_keys do
     local group_size = 2
     local max_interval = 0
     while max_interval < _autogroup_long_threshold and (i+group_size-1) <= num_images do
