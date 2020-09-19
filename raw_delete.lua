@@ -108,13 +108,11 @@ function _collect_tuples(action_images)
     local tuple = all_tuples[new_tuple.identifier]
     if tuple == nil then
       all_tuples[new_tuple.identifier] = new_tuple
-      print ("No tuple with\t"..new_tuple.identifier..", adding")
       tuple = new_tuple
     else
       assert (new_tuple ~= nil)
       assert (new_tuple.identifier ~= nil)
       tuple:combine_with(new_tuple)
-      print ("Tuple exists\t"..new_tuple.identifier)
     end
     
     -- Needed for film-based pair detection
@@ -134,11 +132,6 @@ function _collect_tuples(action_images)
     if #t.images > 1 then
       --TODO group tuple images
       table.insert(filtered_tuples, t)
-      
-      print(t.identifier.." ***")
-      for _, i in pairs(t.images) do
-        print(i.id)
-      end
     end
   end
   
@@ -149,7 +142,6 @@ function _raw_delete_delete_raw(tuple)
   for _, image in pairs(tuple:listRaws()) do
     --reject
     image.rating = -1
-    print("Reject "..image.id)
   end
 end
 
@@ -157,7 +149,6 @@ function _raw_delete_delete_lossy(tuple)
   for _, image in pairs(tuple:listLossies()) do
     --reject
     image.rating = -1
-    print("Reject "..image.id)
   end
 end
 
