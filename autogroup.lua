@@ -83,7 +83,11 @@ end
 
 -------- Main script entry point --------
 
-local function _autogroup_main()
+local function autogroup_action()
+  _autogroup_main(dt.gui.action_images)
+end
+
+local function _autogroup_main(image_table)
   _autogroup_short_threshold = dt.preferences.read("autogroup","LowerGroupingTime","integer")
   _autogroup_long_threshold  = dt.preferences.read("autogroup","UpperGroupingTime","integer")
   no_groups_fallback =  dt.preferences.read("autogroup","NoGroupsFallback","bool")
@@ -91,7 +95,6 @@ local function _autogroup_main()
   local progress_analysis_portion = 0.9
   
   local min_interval = {}
-  local image_table = dt.gui.selection()
   local ordered_keys = {}
   
   table.sort(image_table,_image_time_sort)
@@ -191,10 +194,10 @@ end
 function autogroup_handler()
   if (_debug) then
     --Do a regular call, which will output complete error traceback to console
-    _autogroup_main()
+    autogroup_action()
   else
     
-    local main_success, main_error = pcall(_autogroup_main)
+    local main_success, main_error = pcall(autogroup_action)
     if (not main_success) then
       --Do two print calls, in case tostring conversion fails, user will still see a message
       dt.print("An error prevented autogroup script from completing")
