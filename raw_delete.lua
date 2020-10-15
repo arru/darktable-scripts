@@ -203,6 +203,11 @@ function raw_delete_delete_lossy_action()
   _print_summary(counter, "lossy image(s) rejected")
 end
 
+-------- Plugin preferences --------
+
+dt.preferences.register("raw_delete", "DeleteImages", "bool", "Raw delete: delete images instead of rejecting", "", false )
+
+dt.preferences.register("raw_delete", "FindPairsMode", "enum", "Raw delete: pair finding mode", "How to find images in a pair: among selected images only, or in same film rolls as each image", "Selection", "Selection", "Film roll" )
 
 -------- Plugin registration --------
 
