@@ -1,7 +1,6 @@
 dt = require "darktable"
 
 local _debug = true
-local _raw_delete_dry_run = false
 
 -------- Constants --------
 
