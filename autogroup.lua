@@ -87,7 +87,7 @@ local function autogroup_action()
   _autogroup_main(dt.gui.action_images)
 end
 
-local function _autogroup_main(image_table)
+function _autogroup_main(image_table)
   _autogroup_short_threshold = dt.preferences.read("autogroup","LowerGroupingTime","integer")
   _autogroup_long_threshold  = dt.preferences.read("autogroup","UpperGroupingTime","integer")
   no_groups_fallback =  dt.preferences.read("autogroup","NoGroupsFallback","bool")
