@@ -137,7 +137,17 @@ function _collect_tuples(action_images)
   return filtered_tuples
 end
 
+function _keep(image)
+  if image.rating < 0 then
+    image.rating = 0
+  end
+end
+
 function _raw_delete_delete_raw(tuple)
+  for _, image in pairs(tuple:listLossies()) do
+    _keep(image)
+  end
+  
   for _, image in pairs(tuple:listRaws()) do
     --reject
     image.rating = -1
@@ -145,6 +155,10 @@ function _raw_delete_delete_raw(tuple)
 end
 
 function _raw_delete_delete_lossy(tuple)
+  for _, image in pairs(tuple:listRaws()) do
+    _keep(image)
+  end
+  
   for _, image in pairs(tuple:listLossies()) do
     --reject
     image.rating = -1
